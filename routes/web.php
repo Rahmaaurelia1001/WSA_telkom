@@ -12,17 +12,12 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Semua route yang memerlukan autentikasi dalam satu grup
+// Semua route yang memerlukan autentikasi
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
    
-   
- // Route untuk file processing
-Route::get('/upload', [FileProcessController::class, 'showForm'])->name('upload.form');
-Route::post('/upload/process', [FileProcessController::class, 'process'])->name('upload.process');
-Route::get('/download/{filename}', [FileProcessController::class, 'download'])->name('download');
-
-
-   
+    // Route untuk file processing
+    Route::get('/upload', [FileProcessController::class, 'showForm'])->name('upload.form');
+    Route::post('/upload/process', [FileProcessController::class, 'process'])->name('upload.process');
+    Route::get('/upload/download/{filename}', [FileProcessController::class, 'download'])->name('upload.download');
 });
-

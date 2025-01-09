@@ -27,29 +27,37 @@
             @endif
 
             <!-- Form untuk upload file -->
-            <form action="{{ route('file.process') }}" method="POST" enctype="multipart/form-data">
-    @csrf
-    <div class="mb-4">
-        <label class="block mb-2 text-lg font-medium">All Ticket List:</label>
-        <input type="file" name="all_ticket" class="border p-2 rounded w-full" accept=".xlsx,.xls" required>
-        @error('all_ticket')
-            <div class="text-red-600 text-sm mt-2">{{ $message }}</div>
-        @enderror
-    </div>
+            <form action="{{ route('upload.process') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="mb-4">
+                    <label class="block mb-2 text-lg font-medium">All Ticket List:</label>
+                    <input type="file" name="all_ticket" class="border p-2 rounded w-full" accept=".xlsx,.xls" required>
+                    @error('all_ticket')
+                        <div class="text-red-600 text-sm mt-2">{{ $message }}</div>
+                    @enderror
+                </div>
 
-    <div class="mb-6">
-        <label class="block mb-2 text-lg font-medium">Close Ticket List:</label>
-        <input type="file" name="close_ticket" class="border p-2 rounded w-full" accept=".xlsx,.xls" required>
-        @error('close_ticket')
-            <div class="text-red-600 text-sm mt-2">{{ $message }}</div>
-        @enderror
-    </div>
+                <div class="mb-6">
+                    <label class="block mb-2 text-lg font-medium">Close Ticket List:</label>
+                    <input type="file" name="close_ticket" class="border p-2 rounded w-full" accept=".xlsx,.xls" required>
+                    @error('close_ticket')
+                        <div class="text-red-600 text-sm mt-2">{{ $message }}</div>
+                    @enderror
+                </div>
 
-    <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded w-full hover:bg-red-700 transition duration-200">
-        Process Files
-    </button>
-</form>
+                <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded w-full hover:bg-red-700 transition duration-200">
+                    Process Files
+                </button>
+            </form>
 
+            <!-- Tombol untuk download setelah proses selesai -->
+            @if(session('processed_filename'))
+                <div class="mt-4 text-center">
+                    <a href="{{ route('upload.download', ['filename' => session('processed_filename')]) }}" class="bg-blue-600 text-white px-4 py-2 rounded w-full hover:bg-blue-700 transition duration-200">
+                        Download Processed File
+                    </a>
+                </div>
+            @endif
         </div>
     </div>
 
