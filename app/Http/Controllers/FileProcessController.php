@@ -3,58 +3,73 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\UserExport; // Ekspor untuk mendownload file
+use App\Imports\AllTicketImport;
+use App\Imports\CloseTicketImport;
+use App\Models\Ticket;
 
 class FileProcessController extends Controller
 {
-   public function process(Request $request)
-   {
-       $request->validate([
-           'all_ticket' => 'required|file|mimes:xlsx,xls',
-           'close_ticket' => 'required|file|mimes:xlsx,xls' 
-       ]);
+    // Menampilkan form upload
+    public function showForm()
+    {
+        return view('upload-form');
+    }
 
-       try {
-           // Baca file pertama (all ticket)
-           $allTicketFile = IOFactory::load($request->file('all_ticket'));
-           $allTicketSheet = $allTicketFile->getActiveSheet();
-           $allTicketData = $allTicketSheet->toArray();
+    // Proses file yang diupload
+    public function process(Request $request)
+    {
+        // Validasi bahwa hanya file Excel yang dapat diunggah
+        $request->validate([
+            'all_ticket' => 'required|mimes:xlsx,xls',
+            'close_ticket' => 'required|mimes:xlsx,xls',
+        ]);
 
-           // Baca file kedua (close ticket), skip header
-           $closeTicketFile = IOFactory::load($request->file('close_ticket')); 
-           $closeTicketSheet = $closeTicketFile->getActiveSheet();
-           $closeTicketData = $closeTicketSheet->toArray();
-           array_shift($closeTicketData); // Hapus baris header
+        // Ambil file yang diupload
+        $allTicketFile = $request->file('all_ticket');
+        $closeTicketFile = $request->file('close_ticket');
 
-           // Gabungkan data
-           $mergedData = array_merge($allTicketData, $closeTicketData);
+        // Proses file All Ticket dan Close Ticket menggunakan Maatwebsite Excel
+        $allTicketData = Excel::toCollection(new AllTicketImport, $allTicketFile);
+        $closeTicketData = Excel::toCollection(new CloseTicketImport, $closeTicketFile);
 
-           // Buat file Excel baru untuk hasil gabungan
-           $spreadsheet = new Spreadsheet();
-           $sheet = $spreadsheet->getActiveSheet();
+        // Gabungkan data Close Ticket ke dalam All Ticket
+        $mergedData = $allTicketData[0]->merge($closeTicketData[0]);
 
-           // Masukkan data gabungan 
-           foreach ($mergedData as $rowIndex => $row) {
-               foreach ($row as $columnIndex => $value) {
-                   $sheet->setCellValueByColumnAndRow($columnIndex + 1, $rowIndex + 1, $value);
-               }
-           }
+        // Lakukan pemfilteran kategori "A" pada data
+        $filteredData = $mergedData->filter(function ($row) {
+            return isset($row['category']) && $row['category'] == 'A'; // Pastikan ini sesuai dengan nama kolom di file Excel
+        });
 
-           // Simpan file
-           $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
-           $outputPath = storage_path('app/public/merged_file.xlsx');
-           $writer->save($outputPath);
+        // Cek jika data yang difilter kosong
+        if ($filteredData->isEmpty()) {
+            return back()->withErrors(['msg' => 'Tidak ada data yang memenuhi kriteria.']);
+        }
 
-           return back()->with('success', 'Files berhasil digabungkan.');
+        // Simpan data yang sudah difilter ke dalam database
+        $filteredData->each(function ($row) {
+            // Menyimpan data ke dalam database, sesuaikan dengan kolom yang ada di Excel
+            Ticket::create([
+                'ticket_id' => $row['ticket_id'] ?? null,  // Pastikan nama kolom sesuai dengan yang ada di Excel
+                'category' => $row['category'] ?? null,    // Pastikan nama kolom sesuai dengan yang ada di Excel
+                'description' => $row['description'] ?? null,  // Pastikan nama kolom sesuai dengan yang ada di Excel
+                // Kolom lainnya bisa ditambahkan jika ada
+            ]);
+        });
 
-       } catch (\Exception $e) {
-           return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-       }
-   }
+        // Menyimpan hasil filter ke dalam file Excel
+        $filename = 'processed_tickets.xlsx';
+        Excel::store(new UserExport($filteredData), $filename);
 
-   public function showForm()
-   {
-       return view('upload-form');
-   }
+        // Kembali ke halaman dengan pesan sukses
+        return back()->with('success', 'File berhasil diproses dan siap untuk diunduh.');
+    }
+
+    // Fungsi untuk mendownload file yang sudah diproses
+    public function download($filename)
+    {
+        // Mengunduh file hasil pemrosesan
+        return response()->download(storage_path("app/{$filename}"));
+    }
 }
