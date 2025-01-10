@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Illuminate\Support\Facades\Log;
 
 class FileProcessController extends Controller
@@ -14,7 +16,7 @@ class FileProcessController extends Controller
         $mergedData = session('merged_data', []);
         $header = session('header', []);
         $successMessage = session('success_message', null);
-        $rowCount = count($mergedData); // Hitung jumlah baris data
+        $rowCount = count($mergedData);
 
         return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount'));
     }
@@ -34,12 +36,6 @@ class FileProcessController extends Controller
 
         $allTicketFile = $request->file('all_ticket');
         $closeTicketFile = $request->file('close_ticket');
-
-        $allowedExtensions = ['xls', 'xlsx'];
-        if (!in_array($allTicketFile->getClientOriginalExtension(), $allowedExtensions) ||
-            !in_array($closeTicketFile->getClientOriginalExtension(), $allowedExtensions)) {
-            return back()->withErrors(['msg' => 'File harus berformat .xls atau .xlsx']);
-        }
 
         try {
             $spreadsheetAllTicket = IOFactory::load($allTicketFile->getPathname());
@@ -66,34 +62,95 @@ class FileProcessController extends Controller
     }
 
     // Proses penghapusan data berdasarkan kolom dan nilai yang dipilih
-    public function deleteSelected(Request $request)
+    // Proses penghapusan data berdasarkan kolom dan nilai yang dipilih
+public function deleteSelected(Request $request)
+{
+    $mergedData = session('merged_data', []);
+    $header = session('header', []);
+
+    $columnToDelete = $request->input('column');
+    $valuesToDelete = $request->input('value', []);
+
+    // Cek apakah data yang akan dihapus ada
+    if (empty($mergedData)) {
+        return back()->withErrors(['msg' => 'Tidak ada data yang dapat dihapus.']);
+    }
+
+    // Cek apakah kolom yang dipilih ada di header
+    $columnIndex = array_search($columnToDelete, $header);
+
+    if ($columnIndex === false) {
+        return back()->withErrors(['msg' => 'Kolom tidak ditemukan.']);
+    }
+
+    // Jika nilai yang dipilih tidak ada, tampilkan pesan kesalahan
+    if (empty($valuesToDelete)) {
+        return back()->withErrors(['msg' => 'Tidak ada nilai yang dipilih untuk dihapus.']);
+    }
+
+    // Filter data berdasarkan kolom dan nilai yang dipilih
+    $filteredData = array_filter($mergedData, function ($row) use ($columnIndex, $valuesToDelete) {
+        return !in_array($row[$columnIndex], $valuesToDelete); // Hapus data yang cocok dengan nilai yang dipilih
+    });
+
+    $filteredData = array_values($filteredData); // Reindex array
+
+    // Simpan data yang sudah difilter kembali ke session
+    session(['merged_data' => $filteredData]);
+
+    // Kirim pesan sukses
+    session()->flash('success_message', 'Data berhasil dihapus.');
+
+    return redirect()->route('upload.form');
+}
+
+
+    // Menampilkan opsi filter dalam bentuk checkbox
+    public function showFilterOptions(Request $request)
+    {
+        $header = session('header', []);
+        $mergedData = session('merged_data', []);
+
+        $column = $request->input('column');
+        $columnIndex = array_search($column, $header);
+
+        if ($columnIndex === false) {
+            return response()->json(['error' => 'Kolom tidak ditemukan'], 400);
+        }
+
+        $uniqueValues = array_unique(array_column($mergedData, $columnIndex));
+        return response()->json($uniqueValues);
+    }
+
+    // Proses pengunduhan data hasil proses
+    public function downloadProcessedData()
     {
         $mergedData = session('merged_data', []);
         $header = session('header', []);
 
-        $columnToDelete = $request->input('column');
-        $valueToDelete = $request->input('value');
-
-        if (empty($mergedData)) {
-            return back()->withErrors(['msg' => 'Tidak ada data yang dapat dihapus.']);
+        if (empty($mergedData) || empty($header)) {
+            return back()->withErrors(['msg' => 'Tidak ada data untuk diunduh.']);
         }
 
-        $columnIndex = array_search($columnToDelete, $header);
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
 
-        if ($columnIndex === false) {
-            return back()->withErrors(['msg' => 'Kolom tidak ditemukan.']);
-        }
+        // Tambahkan header ke spreadsheet
+        $sheet->fromArray([$header], null, 'A1');
 
-        $filteredData = array_filter($mergedData, function ($row) use ($columnIndex, $valueToDelete) {
-            return $row[$columnIndex] != $valueToDelete;
-        });
+        // Tambahkan data ke spreadsheet
+        $sheet->fromArray($mergedData, null, 'A2');
 
-        $filteredData = array_values($filteredData);
+        // Atur nama file
+        $fileName = 'Processed_Data_' . date('Ymd_His') . '.xlsx';
 
-        session(['merged_data' => $filteredData]);
+        $writer = new Xlsx($spreadsheet);
 
-        session()->flash('success_message', 'Data berhasil dihapus.');
-
-        return redirect()->route('upload.form');
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => "attachment; filename=\"$fileName\"",
+        ]);
     }
 }

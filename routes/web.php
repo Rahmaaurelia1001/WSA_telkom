@@ -20,4 +20,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/upload', [FileProcessController::class, 'showForm'])->name('upload.form');
     Route::post('/upload/process', [FileProcessController::class, 'process'])->name('upload.process');
     Route::post('/upload/delete', [FileProcessController::class, 'deleteSelected'])->name('upload.delete');
+    Route::get('/upload/download', [FileProcessController::class, 'downloadProcessedData'])->name('upload.download');
 });
+    
+

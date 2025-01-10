@@ -49,17 +49,17 @@
 
         <!-- Tabel Data yang Digabungkan -->
         @if(session('merged_data') && count(session('merged_data')) > 1)
-            <div class="bg-white shadow-md rounded-lg p-6 max-w-4xl mx-auto mt-10">
+            <div class="bg-white shadow-md rounded-lg p-6 w-full mt-10">
                 <h2 class="text-xl font-bold mb-4 text-center">Data yang Digabungkan</h2>
                 <p class="text-gray-700 text-center mb-4">
                     Jumlah Baris Data: <strong>{{ $rowCount }}</strong>
                 </p>
-                <div class="overflow-x-auto">
-                    <table class="table-auto w-full border-collapse border border-gray-300">
+                <div class="overflow-x-auto overflow-y-auto w-full max-h-screen">
+                    <table class="table-auto w-full min-w-max border-collapse border border-gray-300">
                         <thead>
                             <tr class="bg-gray-200">
                                 @foreach(session('header') as $header)
-                                    <th class="border border-gray-300 px-4 py-2">{{ $header }}</th>
+                                    <th class="border border-gray-300 px-4 py-2 text-left">{{ $header }}</th>
                                 @endforeach
                             </tr>
                         </thead>
@@ -85,15 +85,17 @@
                     @csrf
                     <div class="mb-4">
                         <label class="block text-lg font-medium mb-2">Pilih Kolom:</label>
-                        <select name="column" class="border rounded w-full p-2" required>
+                        <select name="column" id="column-select" class="border rounded w-full p-2" required>
                             @foreach(session('header') as $header)
                                 <option value="{{ $header }}">{{ $header }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="mb-4">
-                        <label class="block text-lg font-medium mb-2">Nilai yang Dihapus:</label>
-                        <input type="text" name="value" class="border rounded w-full p-2" required>
+                        <label class="block text-lg font-medium mb-2">Pilih Nilai:</label>
+                        <div id="checkbox-container" class="grid grid-cols-1 gap-2">
+                            <!-- Checkbox akan diisi menggunakan JavaScript -->
+                        </div>
                     </div>
                     <button type="submit" class="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition">
                         Hapus Data
@@ -102,6 +104,39 @@
             </div>
         @endif
     </div>
+
+    <script>
+        const mergedData = @json(session('merged_data', []));
+        const header = @json(session('header', []));
+        const columnSelect = document.getElementById('column-select');
+        const checkboxContainer = document.getElementById('checkbox-container');
+
+        columnSelect.addEventListener('change', function () {
+            const selectedColumn = this.value;
+            const columnIndex = header.indexOf(selectedColumn);
+            const uniqueValues = [...new Set(mergedData.map(row => row[columnIndex]))];
+
+            checkboxContainer.innerHTML = '';
+            uniqueValues.forEach(value => {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = 'value[]';  // Multiple values can be selected
+                checkbox.value = value;
+                checkbox.classList.add('mr-2');
+
+                const label = document.createElement('label');
+                label.textContent = value;
+                label.classList.add('block', 'text-lg');
+
+                const wrapper = document.createElement('div');
+                wrapper.classList.add('flex', 'items-center');
+                wrapper.appendChild(checkbox);
+                wrapper.appendChild(label);
+
+                checkboxContainer.appendChild(wrapper);
+            });
+        });
+    </script>
 
 </body>
 </html>
