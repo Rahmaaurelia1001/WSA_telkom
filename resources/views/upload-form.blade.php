@@ -48,15 +48,18 @@
         </div>
 
         <!-- Tabel Data yang Digabungkan -->
-        @if(session('merged_data') && count(session('merged_data')) > 0)
+        @if(session('merged_data') && count(session('merged_data')) > 1)
             <div class="bg-white shadow-md rounded-lg p-6 max-w-4xl mx-auto mt-10">
-                <h2 class="text-xl font-bold mb-4 text-center">Data yang Digabungkan (Total: {{ count(session('merged_data')) }} Data)</h2>
+                <h2 class="text-xl font-bold mb-4 text-center">Data yang Digabungkan</h2>
+                <p class="text-gray-700 text-center mb-4">
+                    Jumlah Baris Data: <strong>{{ $rowCount }}</strong>
+                </p>
                 <div class="overflow-x-auto">
                     <table class="table-auto w-full border-collapse border border-gray-300">
                         <thead>
                             <tr class="bg-gray-200">
-                                @foreach($header as $column)
-                                    <th class="border border-gray-300 px-4 py-2">{{ $column }}</th>
+                                @foreach(session('header') as $header)
+                                    <th class="border border-gray-300 px-4 py-2">{{ $header }}</th>
                                 @endforeach
                             </tr>
                         </thead>
@@ -72,9 +75,30 @@
                     </table>
                 </div>
             </div>
-        @elseif(session('success_message'))
-            <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mt-6 max-w-4xl mx-auto">
-                Data berhasil diproses, namun tidak ada data yang dapat ditampilkan.
+        @endif
+
+        <!-- Form Filter dan Hapus Data -->
+        @if(session('merged_data') && count(session('merged_data')) > 1)
+            <div class="mt-6 bg-white shadow-md rounded-lg p-6 max-w-lg mx-auto">
+                <h2 class="text-xl font-bold mb-4">Hapus Data Berdasarkan Kolom</h2>
+                <form action="{{ route('upload.delete') }}" method="POST">
+                    @csrf
+                    <div class="mb-4">
+                        <label class="block text-lg font-medium mb-2">Pilih Kolom:</label>
+                        <select name="column" class="border rounded w-full p-2" required>
+                            @foreach(session('header') as $header)
+                                <option value="{{ $header }}">{{ $header }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-lg font-medium mb-2">Nilai yang Dihapus:</label>
+                        <input type="text" name="value" class="border rounded w-full p-2" required>
+                    </div>
+                    <button type="submit" class="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition">
+                        Hapus Data
+                    </button>
+                </form>
             </div>
         @endif
     </div>
