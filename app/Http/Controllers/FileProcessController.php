@@ -24,20 +24,31 @@ class FileProcessController extends Controller
     public function process(Request $request)
     {
         $request->validate([
-            'all_ticket' => 'required|file|mimes:xlsx,xls|max:10240',
-            'close_ticket' => 'required|file|mimes:xlsx,xls|max:10240',
+            'all_ticket' => 'required|file|max:10240',  // Menghapus aturan mimes
+            'close_ticket' => 'required|file|max:10240', // Menghapus aturan mimes
         ], [
             'all_ticket.required' => 'File All Ticket wajib diunggah.',
-            'all_ticket.mimes' => 'File All Ticket harus berformat Excel (.xlsx atau .xls).',
-            'close_ticket.required' => 'File Close Ticket wajib diunggah.',
-            'close_ticket.mimes' => 'File Close Ticket harus berformat Excel (.xlsx atau .xls).',
             'all_ticket.max' => 'File All Ticket tidak boleh lebih dari 10MB.',
+            'close_ticket.required' => 'File Close Ticket wajib diunggah.',
             'close_ticket.max' => 'File Close Ticket tidak boleh lebih dari 10MB.',
         ]);
 
         try {
             $allTicketFile = $request->file('all_ticket');
             $closeTicketFile = $request->file('close_ticket');
+
+            // Log MIME Type untuk pengecekan format file
+            Log::info('All Ticket File Mime Type: ' . $allTicketFile->getMimeType());
+            Log::info('Close Ticket File Mime Type: ' . $closeTicketFile->getMimeType());
+
+            // Cek jika file berformat Excel
+            if (!in_array($allTicketFile->getClientOriginalExtension(), ['xlsx', 'xls'])) {
+                throw new \Exception('File All Ticket harus berformat Excel (.xlsx atau .xls).');
+            }
+
+            if (!in_array($closeTicketFile->getClientOriginalExtension(), ['xlsx', 'xls'])) {
+                throw new \Exception('File Close Ticket harus berformat Excel (.xlsx atau .xls).');
+            }
 
             // Load Excel files
             $spreadsheetAllTicket = IOFactory::load($allTicketFile->getPathname());
