@@ -6,11 +6,11 @@ use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 use Illuminate\Support\Facades\Log;
 
 class FileProcessController extends Controller
 {
-    // Menampilkan form upload
     public function showForm()
     {
         $mergedData = session('merged_data', []);
@@ -21,91 +21,131 @@ class FileProcessController extends Controller
         return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount'));
     }
 
-    // Proses pengunggahan dan penggabungan file
     public function process(Request $request)
     {
         $request->validate([
-            'all_ticket' => 'required|file|max:10240',
-            'close_ticket' => 'required|file|max:10240',
+            'all_ticket' => 'required|file|mimes:xlsx,xls|max:10240',
+            'close_ticket' => 'required|file|mimes:xlsx,xls|max:10240',
         ], [
             'all_ticket.required' => 'File All Ticket wajib diunggah.',
+            'all_ticket.mimes' => 'File All Ticket harus berformat Excel (.xlsx atau .xls).',
             'close_ticket.required' => 'File Close Ticket wajib diunggah.',
+            'close_ticket.mimes' => 'File Close Ticket harus berformat Excel (.xlsx atau .xls).',
             'all_ticket.max' => 'File All Ticket tidak boleh lebih dari 10MB.',
             'close_ticket.max' => 'File Close Ticket tidak boleh lebih dari 10MB.',
         ]);
 
-        $allTicketFile = $request->file('all_ticket');
-        $closeTicketFile = $request->file('close_ticket');
-
         try {
+            $allTicketFile = $request->file('all_ticket');
+            $closeTicketFile = $request->file('close_ticket');
+
+            // Load Excel files
             $spreadsheetAllTicket = IOFactory::load($allTicketFile->getPathname());
             $spreadsheetCloseTicket = IOFactory::load($closeTicketFile->getPathname());
 
+            // Get active sheets
             $sheetAllTicket = $spreadsheetAllTicket->getActiveSheet();
             $sheetCloseTicket = $spreadsheetCloseTicket->getActiveSheet();
 
-            $allTicketData = $sheetAllTicket->toArray();
-            $closeTicketData = $sheetCloseTicket->toArray();
+            // Get raw cell values including formulas and errors
+            $allTicketData = $sheetAllTicket->toArray(null, true, false, true);
+            $closeTicketData = $sheetCloseTicket->toArray(null, true, false, true);
+
+            $header = $allTicketData[1];
+            $mergedData = array_merge(
+                array_slice($allTicketData, 2),
+                array_slice($closeTicketData, 2)
+            );
+
+            // Find BOOKING DATE column
+            $bookingDateColumn = null;
+            foreach ($header as $col => $value) {
+                if ($value === 'BOOKING DATE') {
+                    $bookingDateColumn = $col;
+                    break;
+                }
+            }
+
+            if ($bookingDateColumn) {
+                foreach ($mergedData as $row => $data) {
+                    $cellValue = $data[$bookingDateColumn];
+                    
+                    // Keep cell value as is without modifying
+                    if ($cellValue === null || $cellValue === '' || $cellValue === "'" || $cellValue === '"' || trim($cellValue) === '') {
+                        continue;
+                    }
+                    
+                    // Convert Excel date to datetime if numeric
+                    if (is_numeric($cellValue)) {
+                        try {
+                            $dateValue = Date::excelToDateTimeObject($cellValue);
+                            $mergedData[$row][$bookingDateColumn] = $dateValue->format('Y-m-d H:i:s');
+                        } catch (\Exception $e) {
+                            Log::error("Error converting date at row {$row}: " . $e->getMessage());
+                        }
+                    } else {
+                        // Try to parse string date
+                        try {
+                            $dateValue = new \DateTime($cellValue);
+                            $mergedData[$row][$bookingDateColumn] = $dateValue->format('Y-m-d H:i:s');
+                        } catch (\Exception $e) {
+                            Log::error("Error parsing date string at row {$row}: " . $e->getMessage());
+                        }
+                    }
+                }
+            }
+
+            // Convert header and data to numeric arrays
+            $header = array_values($header);
+            $mergedData = array_map(function($row) {
+                return array_values($row);
+            }, $mergedData);
+
+            session(['merged_data' => $mergedData, 'header' => $header]);
+            session()->flash('success_message', 'File berhasil digabungkan.');
+
+            return redirect()->route('upload.form');
+
         } catch (\Exception $e) {
             Log::error('Error processing files: ' . $e->getMessage());
-            return back()->withErrors(['msg' => 'Terjadi kesalahan saat membaca file: ' . $e->getMessage()]);
+            return back()->withErrors(['msg' => 'Terjadi kesalahan saat memproses file: ' . $e->getMessage()]);
+        }
+    }
+
+    public function deleteSelected(Request $request)
+    {
+        $mergedData = session('merged_data', []);
+        $header = session('header', []);
+
+        $columnToDelete = $request->input('column');
+        $valuesToDelete = $request->input('value', []);
+
+        if (empty($mergedData)) {
+            return back()->withErrors(['msg' => 'Tidak ada data yang dapat dihapus.']);
         }
 
-        $header = $allTicketData[0];
-        $mergedData = array_merge(array_slice($allTicketData, 1), array_slice($closeTicketData, 1));
+        $columnIndex = array_search($columnToDelete, $header);
 
-        session(['merged_data' => $mergedData, 'header' => $header]);
+        if ($columnIndex === false) {
+            return back()->withErrors(['msg' => 'Kolom tidak ditemukan.']);
+        }
 
-        session()->flash('success_message', 'File berhasil digabungkan.');
+        if (empty($valuesToDelete)) {
+            return back()->withErrors(['msg' => 'Tidak ada nilai yang dipilih untuk dihapus.']);
+        }
+
+        $filteredData = array_filter($mergedData, function ($row) use ($columnIndex, $valuesToDelete) {
+            return !in_array($row[$columnIndex], $valuesToDelete);
+        });
+
+        $filteredData = array_values($filteredData);
+
+        session(['merged_data' => $filteredData]);
+        session()->flash('success_message', 'Data berhasil dihapus.');
 
         return redirect()->route('upload.form');
     }
 
-    // Proses penghapusan data berdasarkan kolom dan nilai yang dipilih
-    // Proses penghapusan data berdasarkan kolom dan nilai yang dipilih
-public function deleteSelected(Request $request)
-{
-    $mergedData = session('merged_data', []);
-    $header = session('header', []);
-
-    $columnToDelete = $request->input('column');
-    $valuesToDelete = $request->input('value', []);
-
-    // Cek apakah data yang akan dihapus ada
-    if (empty($mergedData)) {
-        return back()->withErrors(['msg' => 'Tidak ada data yang dapat dihapus.']);
-    }
-
-    // Cek apakah kolom yang dipilih ada di header
-    $columnIndex = array_search($columnToDelete, $header);
-
-    if ($columnIndex === false) {
-        return back()->withErrors(['msg' => 'Kolom tidak ditemukan.']);
-    }
-
-    // Jika nilai yang dipilih tidak ada, tampilkan pesan kesalahan
-    if (empty($valuesToDelete)) {
-        return back()->withErrors(['msg' => 'Tidak ada nilai yang dipilih untuk dihapus.']);
-    }
-
-    // Filter data berdasarkan kolom dan nilai yang dipilih
-    $filteredData = array_filter($mergedData, function ($row) use ($columnIndex, $valuesToDelete) {
-        return !in_array($row[$columnIndex], $valuesToDelete); // Hapus data yang cocok dengan nilai yang dipilih
-    });
-
-    $filteredData = array_values($filteredData); // Reindex array
-
-    // Simpan data yang sudah difilter kembali ke session
-    session(['merged_data' => $filteredData]);
-
-    // Kirim pesan sukses
-    session()->flash('success_message', 'Data berhasil dihapus.');
-
-    return redirect()->route('upload.form');
-}
-
-
-    // Menampilkan opsi filter dalam bentuk checkbox
     public function showFilterOptions(Request $request)
     {
         $header = session('header', []);
@@ -119,10 +159,11 @@ public function deleteSelected(Request $request)
         }
 
         $uniqueValues = array_unique(array_column($mergedData, $columnIndex));
+        sort($uniqueValues);
+        
         return response()->json($uniqueValues);
     }
 
-    // Proses pengunduhan data hasil proses
     public function downloadProcessedData()
     {
         $mergedData = session('merged_data', []);
@@ -132,25 +173,28 @@ public function deleteSelected(Request $request)
             return back()->withErrors(['msg' => 'Tidak ada data untuk diunduh.']);
         }
 
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
+        try {
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
 
-        // Tambahkan header ke spreadsheet
-        $sheet->fromArray([$header], null, 'A1');
+            // Write header
+            $sheet->fromArray([$header], null, 'A1');
+            
+            // Write data
+            $sheet->fromArray($mergedData, null, 'A2');
 
-        // Tambahkan data ke spreadsheet
-        $sheet->fromArray($mergedData, null, 'A2');
-
-        // Atur nama file
-        $fileName = 'Processed_Data_' . date('Ymd_His') . '.xlsx';
-
-        $writer = new Xlsx($spreadsheet);
-
-        return response()->streamDownload(function () use ($writer) {
-            $writer->save('php://output');
-        }, $fileName, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition' => "attachment; filename=\"$fileName\"",
-        ]);
+            $fileName = 'Processed_Data_' . date('Ymd_His') . '.xlsx';
+            $writer = new Xlsx($spreadsheet);
+            
+            return response()->streamDownload(function () use ($writer) {
+                $writer->save('php://output');
+            }, $fileName, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => "attachment; filename=\"$fileName\"",
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error downloading file: ' . $e->getMessage());
+            return back()->withErrors(['msg' => 'Terjadi kesalahan saat mengunduh file.']);
+        }
     }
 }
