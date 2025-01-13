@@ -37,9 +37,36 @@ class AuthController extends Controller
         return redirect('/');
     }
 
-    // Tambahkan method dashboard ini
     public function dashboard()
     {
         return view('dashboard');
+    }
+
+    // Menampilkan halaman profil
+    public function profile()
+    {
+        $user = auth()->user();
+        return view('profile', compact('user'));
+    }
+
+    // Memperbarui profil pengguna
+    public function updateProfile(Request $request)
+    {
+        $user = auth()->user();
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        if ($request->hasFile('profile_picture')) {
+            $path = $request->file('profile_picture')->store('profiles', 'public');
+            $user->profile_picture = $path;
+        }
+
+        $user->name = $request->name;
+        $user->save();
+
+        return redirect()->route('profile')->with('success', 'Profile updated successfully!');
     }
 }

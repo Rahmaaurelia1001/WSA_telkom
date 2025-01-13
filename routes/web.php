@@ -22,6 +22,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/process-booking-date', [FileProcessController::class, 'processBookingDate'])->name('upload.processBookingDate');
     Route::post('/delete', [FileProcessController::class, 'deleteSelected'])->name('upload.delete');
     Route::get('/download', [FileProcessController::class, 'downloadProcessedData'])->name('upload.download');
-});
     
-
+    // Route untuk profil pengguna
+    Route::get('/profile', [AuthController::class, 'profile'])->name('profile');
+    Route::get('/history', [UserController::class, 'history'])->name('history');
+});
