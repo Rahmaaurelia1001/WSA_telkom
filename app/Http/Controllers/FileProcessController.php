@@ -8,6 +8,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class FileProcessController extends Controller
 {
@@ -17,15 +18,22 @@ class FileProcessController extends Controller
         $header = session('header', []);
         $successMessage = session('success_message', null);
         $rowCount = count($mergedData);
-
-        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount'));
+        
+        // Fetch service types from marking_data table
+        $serviceTypes = DB::table('marking_data')
+            ->select('service_type')
+            ->distinct()
+            ->pluck('service_type')
+            ->toArray();
+            
+        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes'));
     }
 
     public function process(Request $request)
     {
         $request->validate([
-            'all_ticket' => 'required|file|max:10240',  // Menghapus aturan mimes
-            'close_ticket' => 'required|file|max:10240', // Menghapus aturan mimes
+            'all_ticket' => 'required|file|max:10240',
+            'close_ticket' => 'required|file|max:10240',
         ], [
             'all_ticket.required' => 'File All Ticket wajib diunggah.',
             'all_ticket.max' => 'File All Ticket tidak boleh lebih dari 10MB.',
@@ -37,11 +45,9 @@ class FileProcessController extends Controller
             $allTicketFile = $request->file('all_ticket');
             $closeTicketFile = $request->file('close_ticket');
 
-            // Log MIME Type untuk pengecekan format file
             Log::info('All Ticket File Mime Type: ' . $allTicketFile->getMimeType());
             Log::info('Close Ticket File Mime Type: ' . $closeTicketFile->getMimeType());
 
-            // Cek jika file berformat Excel
             if (!in_array($allTicketFile->getClientOriginalExtension(), ['xlsx', 'xls'])) {
                 throw new \Exception('File All Ticket harus berformat Excel (.xlsx atau .xls).');
             }
@@ -50,15 +56,12 @@ class FileProcessController extends Controller
                 throw new \Exception('File Close Ticket harus berformat Excel (.xlsx atau .xls).');
             }
 
-            // Load Excel files
             $spreadsheetAllTicket = IOFactory::load($allTicketFile->getPathname());
             $spreadsheetCloseTicket = IOFactory::load($closeTicketFile->getPathname());
 
-            // Get active sheets
             $sheetAllTicket = $spreadsheetAllTicket->getActiveSheet();
             $sheetCloseTicket = $spreadsheetCloseTicket->getActiveSheet();
 
-            // Get raw cell values including formulas and errors
             $allTicketData = $sheetAllTicket->toArray(null, true, false, true);
             $closeTicketData = $sheetCloseTicket->toArray(null, true, false, true);
 
@@ -81,12 +84,10 @@ class FileProcessController extends Controller
                 foreach ($mergedData as $row => $data) {
                     $cellValue = $data[$bookingDateColumn];
                     
-                    // Keep cell value as is without modifying
                     if ($cellValue === null || $cellValue === '' || $cellValue === "'" || $cellValue === '"' || trim($cellValue) === '') {
                         continue;
                     }
                     
-                    // Convert Excel date to datetime if numeric
                     if (is_numeric($cellValue)) {
                         try {
                             $dateValue = Date::excelToDateTimeObject($cellValue);
@@ -95,7 +96,6 @@ class FileProcessController extends Controller
                             Log::error("Error converting date at row {$row}: " . $e->getMessage());
                         }
                     } else {
-                        // Try to parse string date
                         try {
                             $dateValue = new \DateTime($cellValue);
                             $mergedData[$row][$bookingDateColumn] = $dateValue->format('Y-m-d H:i:s');
@@ -106,13 +106,24 @@ class FileProcessController extends Controller
                 }
             }
 
+            // Get service types from marking_data table
+            $serviceTypes = DB::table('marking_data')
+                ->select('service_type')
+                ->distinct()
+                ->pluck('service_type')
+                ->toArray();
+
             // Convert header and data to numeric arrays
             $header = array_values($header);
             $mergedData = array_map(function($row) {
                 return array_values($row);
             }, $mergedData);
 
-            session(['merged_data' => $mergedData, 'header' => $header]);
+            session([
+                'merged_data' => $mergedData, 
+                'header' => $header,
+                'service_types' => $serviceTypes
+            ]);
             session()->flash('success_message', 'File berhasil digabungkan.');
 
             return redirect()->route('upload.form');
@@ -208,5 +219,33 @@ class FileProcessController extends Controller
             return back()->withErrors(['msg' => 'Terjadi kesalahan saat mengunduh file.']);
         }
     }
-    
+
+    public function getServiceTypes()
+    {
+        try {
+            $serviceTypes = DB::table('marking_data')
+                ->select('service_type')
+                ->distinct()
+                ->pluck('service_type');
+            
+            return response()->json($serviceTypes);
+        } catch (\Exception $e) {
+            Log::error('Error fetching service types: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat mengambil data service type'], 500);
+        }
+    }
+
+    public function checkServiceType($service)
+    {
+        try {
+            $exists = DB::table('marking_data')
+                ->where('service_type', $service)
+                ->exists();
+            
+            return response()->json(['exists' => $exists]);
+        } catch (\Exception $e) {
+            Log::error('Error checking service type: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat memeriksa service type'], 500);
+        }
+    }
 }
