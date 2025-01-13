@@ -105,20 +105,19 @@
                 </table>
             </div>
             
-            <!-- Tombol Proses untuk Menampilkan Data dari Kolom BOOKING DATE -->
             <button id="process-booking-date" class="mt-4 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
-                Proses Booking Date
+                Proses Data
             </button>
             
-            <!-- Tabel Booking Date dengan Selisih Waktu -->
             <div id="booking-date-table" class="mt-6 hidden">
-                <h3 class="text-lg font-semibold text-center mb-4">Data Booking Date dengan Selisih Waktu</h3>
+                <h3 class="text-lg font-semibold text-center mb-4">Hasil Proses Data</h3>
                 <div class="overflow-x-auto">
                     <table class="table-auto w-full border-collapse border border-gray-300">
                         <thead>
                             <tr class="bg-gray-200">
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Booking Date</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Selisih Waktu</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Durasi Manja</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Today WO</th>
                             </tr>
                         </thead>
                         <tbody id="booking-date-tbody">
@@ -140,7 +139,6 @@
         const bookingDateTbody = document.getElementById('booking-date-tbody');
 
         function calculateTimeDifference(bookingDate) {
-            // If booking date is empty or undefined, return #VALUE!
             if (!bookingDate || bookingDate === "" || bookingDate === undefined || bookingDate === null) {
                 return "#VALUE!";
             }
@@ -149,17 +147,35 @@
                 const now = dayjs();
                 const booking = dayjs(bookingDate);
                 
-                // Check if the date is valid
                 if (!booking.isValid()) {
                     return "#VALUE!";
                 }
 
-                // Calculate difference in hours
                 const diffInHours = Math.abs(now.diff(booking, 'hour'));
                 return `${diffInHours} jam`;
             } catch (error) {
                 console.error('Error calculating time difference:', error);
                 return "#VALUE!";
+            }
+        }
+
+        function isTodayWO(bookingDate) {
+            if (!bookingDate || bookingDate === "" || bookingDate === undefined || bookingDate === null) {
+                return false;
+            }
+
+            try {
+                const today = dayjs();
+                const booking = dayjs(bookingDate);
+                
+                if (!booking.isValid()) {
+                    return false;
+                }
+
+                return booking.format('YYYY-MM-DD') === today.format('YYYY-MM-DD');
+            } catch (error) {
+                console.error('Error checking Today WO:', error);
+                return false;
             }
         }
 
@@ -186,8 +202,14 @@
                 diffCell.className = 'border border-gray-300 px-4 py-2 text-center text-sm text-gray-600';
                 diffCell.textContent = calculateTimeDifference(date);
                 
+                // Today WO cell
+                const todayWOCell = document.createElement('td');
+                todayWOCell.className = 'border border-gray-300 px-4 py-2 text-center text-sm text-gray-600';
+                todayWOCell.textContent = isTodayWO(date) ? 'True' : 'False';
+                
                 row.appendChild(dateCell);
                 row.appendChild(diffCell);
+                row.appendChild(todayWOCell);
                 bookingDateTbody.appendChild(row);
             });
 
@@ -225,6 +247,8 @@
                 div.appendChild(label);
                 checkboxContainer.appendChild(div);
             });
+            
+            
         });
     </script>
 </body>
