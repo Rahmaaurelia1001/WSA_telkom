@@ -55,7 +55,7 @@
 
         @if(session('merged_data') && count(session('merged_data')) > 1)
         <div class="mt-6 bg-white shadow-md rounded-lg p-6" style="width: 100vw; margin-left: calc(-50vw + 50%); padding-left: 40px; padding-right: 20px;">
-            <h2 class="text-xl font-bold mb-4" style="text-align: center;">Data yang Digabungkan</h2>
+            <h2 class="text-xl font-bold mb-4" style="text-align: center;">Data yang Dihapus</h2>
             <form action="{{ route('upload.delete') }}" method="POST" style="height: 200px!important;">
                 @csrf
                 <div class="mb-4">
@@ -79,32 +79,36 @@
         @endif
 
         @if(session('merged_data') && count(session('merged_data')) > 1)
-        <div class="bg-white shadow-md rounded-lg p-6 w-full mt-10 mx-auto" style="max-width: 1200px; padding-left: 20px; padding-right: 20px;">
-            <h2 class="text-xl font-bold mb-4 text-center">Data yang Digabungkan</h2>
-            <p class="text-gray-700 text-center mb-4">
-                Jumlah Baris Data: <strong>{{ $rowCount }}</strong>
-            </p>
-            <div class="overflow-x-auto overflow-y-auto w-full max-h-screen">
-                <table class="table-auto w-full border-collapse border border-gray-300">
-                    <thead>
-                        <tr class="bg-gray-200">
-                            @foreach(session('header') as $header)
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">{{ $header }}</th>
-                            @endforeach
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach(session('merged_data') as $row)
-                            <tr class="hover:bg-gray-50">
-                                @foreach($row as $cell)
-                                    <td class="border border-gray-300 px-4 py-2 text-center text-sm text-gray-600">{{ $cell }}</td>
-                                @endforeach
-                            </tr>
+        <div class="bg-white shadow-md rounded-lg p-6 mt-10" style="width: 100vw; margin-left: calc(-50vw + 50%); padding-left: 20px; padding-right: 20px;">
+    <h2 class="text-xl font-bold mb-4 text-center">Data yang Digabungkan</h2>
+    <p class="text-gray-700 text-center mb-4">
+        Jumlah Baris Data: <strong>{{ $rowCount }}</strong>
+    </p>
+    <div class="overflow-x-auto overflow-y-auto max-h-screen">
+        <table class="table-auto w-full border-collapse border border-gray-300">
+            <thead class="bg-gray-200">
+                <tr>
+                    @foreach(session('header') as $header)
+                        <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700 sticky top-0 bg-gray-200 z-10">
+                            {{ $header }}
+                        </th>
+                    @endforeach
+                </tr>
+            </thead>
+            <tbody>
+                @foreach(session('merged_data') as $row)
+                    <tr class="hover:bg-gray-50">
+                        @foreach($row as $cell)
+                            <td class="border border-gray-300 px-4 py-2 text-center text-sm text-gray-600">{{ $cell }}</td>
                         @endforeach
-                    </tbody>
-                </table>
-            </div>
-            
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+
+    
             <button id="process-booking-date" class="mt-4 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
                 Proses Data
             </button>
@@ -118,6 +122,7 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Booking Date</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Durasi Manja</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Today WO</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Jam</th>
                             </tr>
                         </thead>
                         <tbody id="booking-date-tbody">
@@ -179,77 +184,67 @@
             }
         }
 
-        processButton.addEventListener('click', function () {
-            if (bookingDateColumnIndex === -1) {
-                alert('Kolom "BOOKING DATE" tidak ditemukan!');
-                return;
+        function extractHourFromDate(bookingDate) {
+        if (!bookingDate || bookingDate === "" || bookingDate === undefined || bookingDate === null) {
+            return "";
+        }
+
+        try {
+            const booking = dayjs(bookingDate);
+            
+            if (!booking.isValid()) {
+                return "";
             }
 
-            const bookingDates = mergedData.map(row => row[bookingDateColumnIndex]);
-            bookingDateTbody.innerHTML = '';
+            return booking.format('HH');
+        } catch (error) {
+            console.error('Error extracting hour:', error);
+            return "";
+        }
+    }
 
-            bookingDates.forEach(date => {
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50';
-                
-                // Booking Date cell
-                const dateCell = document.createElement('td');
-                dateCell.className = 'border border-gray-300 px-4 py-2 text-center text-sm text-gray-600';
-                dateCell.textContent = date || '';
-                
-                // Time Difference cell
-                const diffCell = document.createElement('td');
-                diffCell.className = 'border border-gray-300 px-4 py-2 text-center text-sm text-gray-600';
-                diffCell.textContent = calculateTimeDifference(date);
-                
-                // Today WO cell
-                const todayWOCell = document.createElement('td');
-                todayWOCell.className = 'border border-gray-300 px-4 py-2 text-center text-sm text-gray-600';
-                todayWOCell.textContent = isTodayWO(date) ? 'True' : 'False';
-                
-                row.appendChild(dateCell);
-                row.appendChild(diffCell);
-                row.appendChild(todayWOCell);
-                bookingDateTbody.appendChild(row);
-            });
+    processButton.addEventListener('click', function () {
+        if (bookingDateColumnIndex === -1) {
+            alert('Kolom "BOOKING DATE" tidak ditemukan!');
+            return;
+        }
 
-            bookingDateTable.classList.remove('hidden');
+        const bookingDates = mergedData.map(row => row[bookingDateColumnIndex]);
+        bookingDateTbody.innerHTML = '';
+
+        bookingDates.forEach(date => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+            
+            // Booking Date cell
+            const dateCell = document.createElement('td');
+            dateCell.className = 'border border-gray-300 px-4 py-2 text-center text-sm text-gray-600';
+            dateCell.textContent = date || '';
+            
+            // Time Difference cell
+            const diffCell = document.createElement('td');
+            diffCell.className = 'border border-gray-300 px-4 py-2 text-center text-sm text-gray-600';
+            diffCell.textContent = calculateTimeDifference(date);
+            
+            // Today WO cell
+            const todayWOCell = document.createElement('td');
+            todayWOCell.className = 'border border-gray-300 px-4 py-2 text-center text-sm text-gray-600';
+            todayWOCell.textContent = isTodayWO(date) ? 'True' : 'False';
+            
+            // Hour cell
+            const hourCell = document.createElement('td');
+            hourCell.className = 'border border-gray-300 px-4 py-2 text-center text-sm text-gray-600';
+            hourCell.textContent = extractHourFromDate(date);
+            
+            row.appendChild(dateCell);
+            row.appendChild(diffCell);
+            row.appendChild(todayWOCell);
+            row.appendChild(hourCell);
+            bookingDateTbody.appendChild(row);
         });
 
-        // Column select functionality
-        const columnSelect = document.getElementById('column-select');
-        const checkboxContainer = document.getElementById('checkbox-container');
-
-        columnSelect.addEventListener('change', function() {
-            const selectedColumn = this.value;
-            const columnIndex = header.indexOf(selectedColumn);
-            
-            if (columnIndex === -1) return;
-            
-            const uniqueValues = [...new Set(mergedData.map(row => row[columnIndex]))];
-            checkboxContainer.innerHTML = '';
-            
-            uniqueValues.forEach(value => {
-                const div = document.createElement('div');
-                div.className = 'flex items-center';
-                
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.name = 'value[]';
-                checkbox.value = value;
-                checkbox.className = 'mr-2';
-                
-                const label = document.createElement('label');
-                label.textContent = value;
-                label.className = 'text-sm';
-                
-                div.appendChild(checkbox);
-                div.appendChild(label);
-                checkboxContainer.appendChild(div);
-            });
-            
-            
-        });
+        bookingDateTable.classList.remove('hidden');
+    });
     </script>
 </body>
 </html>
