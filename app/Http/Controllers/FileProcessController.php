@@ -19,7 +19,7 @@ class FileProcessController extends Controller
         $successMessage = session('success_message', null);
         $rowCount = count($mergedData);
         
-        // Fetch service types from marking_data table
+     
         $serviceTypes = DB::table('marking_data')
             ->select('service_type')
             ->distinct()
@@ -34,6 +34,7 @@ class FileProcessController extends Controller
 
         $customerTypes = DB::table('marking_data')
             ->select('customer_type')
+            ->whereNotNull('customer_type') 
             ->distinct()
             ->pluck('customer_type')
             ->toArray();
@@ -118,7 +119,7 @@ class FileProcessController extends Controller
                 }
             }
 
-            // Get service types from marking_data table
+            
             $serviceTypes = DB::table('marking_data')
                 ->select('service_type')
                 ->distinct()
@@ -136,6 +137,7 @@ class FileProcessController extends Controller
                 
             $customerTypes = DB::table('marking_data')
                 ->select('customer_type')
+                ->whereNotNull('customer_type') 
                 ->distinct()
                 ->pluck('customer_type')
                 ->toArray();
@@ -319,14 +321,21 @@ class FileProcessController extends Controller
     {
         try {
             $customerTypes = DB::table('marking_data')
-                ->select('customer_type')
-                ->distinct()
-                ->pluck('customer_type')
-                ->toArray();
+            ->select('customer_type')
+            ->whereNotNull('customer_type') 
+            ->distinct()
+            ->pluck('customer_type')
+            ->toArray();
+
+            Log::info('Retrieved segmens from database:', $customerTypes);  // Untuk memastikan data terambil
+
+            if (empty($customerTypes)) {
+                Log::warning('No customer type data found in marking_data table');
+            }
             
             return response()->json($customerTypes);
         } catch (\Exception $e) {
-            Log::error('Error fetching customer type: ' . $e->getMessage());
+            Log::error('Error fetching segmen types: ' . $e->getMessage());
             return response()->json(['error' => 'Terjadi kesalahan saat mengambil data customer type'], 500);
         }
     }
@@ -335,9 +344,9 @@ class FileProcessController extends Controller
     {
         try {
             $exists = DB::table('marking_data')
-                ->where('customer_type', $customer)
+                ->where('customer_type', trim($customer))  // Menggunakan trim() untuk menghapus spasi
                 ->exists();
-            
+                        
             return response()->json(['exists' => $exists]);
         } catch (\Exception $e) {
             Log::error('Error checking customer type: ' . $e->getMessage());

@@ -126,6 +126,7 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Durasi Tiket</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Reg-1</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Service Type</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Customer Segmen</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Customer Only</th>
                             </tr>
                         </thead>
@@ -284,29 +285,29 @@
             }
             
             // Normalize service type for comparison
-            const normalizedService = segmen.trim().toLowerCase();
+            const normalizedSegmen = segmen.trim().toLowerCase();
             
             // Compare with service types from database
             return segmens.some(type => {
                 const normalizedType = type.toLowerCase().trim();
-                return normalizedType === normalizedService;
+                return normalizedType === normalizedSegmen;
             });
         }
 
         function isValidCustomerType(customer) {
-            console.log('Checking customer type  value:', customer);
+            console.log('Checking cutomer type value:', customer);
             console.log('Available customer type from database:', customerTypes);
             if (!customer || customer === "" || customer === undefined || customer === null) {
                 return false;
             }
             
-            // Normalize customer type for comparison
+            // Normalize service type for comparison
             const normalizedCustomer = customer.trim().toLowerCase();
             
-            // Compare with customer types from database
+            // Compare with service types from database
             return customerTypes.some(type => {
                 const normalizedType = type.toLowerCase().trim();
-                return normalizedType === normalizedService;
+                return normalizedType === normalizedCustomer;
             });
         }
 
@@ -338,6 +339,7 @@
                     { value: calculateTimeDifference(reportedDate) },
                     { value: isRegionOne(region) ? 'True' : 'False' },
                     { value: isValidServiceType(service) ? 'True' : 'False' },
+                    { value: isValidSegmen(segmen) ? 'True' : 'False' },
                     { value: isValidCustomerType(customer) ? 'True' : 'False' }
                 ];
 
