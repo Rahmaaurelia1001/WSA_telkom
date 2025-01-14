@@ -1,5 +1,5 @@
 <?php
-
+// FileProcessController.php
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -25,8 +25,20 @@ class FileProcessController extends Controller
             ->distinct()
             ->pluck('service_type')
             ->toArray();
+
+        $segmens = DB::table('marking_data')
+            ->select('segmen')
+            ->distinct()
+            ->pluck('segmen')
+            ->toArray();
+
+        $customerTypes = DB::table('marking_data')
+            ->select('customer_type')
+            ->distinct()
+            ->pluck('customer_type')
+            ->toArray();
             
-        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes'));
+        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes'));
     }
 
     public function process(Request $request)
@@ -113,6 +125,21 @@ class FileProcessController extends Controller
                 ->pluck('service_type')
                 ->toArray();
 
+            // Get segmen  from marking_data table
+            $segmens = DB::table('marking_data')
+                ->select('segmen')
+                ->whereNotNull('segmen') 
+                ->distinct()
+                ->pluck('segmen')
+                ->toArray();
+            
+                
+            $customerTypes = DB::table('marking_data')
+                ->select('customer_type')
+                ->distinct()
+                ->pluck('customer_type')
+                ->toArray();
+
             // Convert header and data to numeric arrays
             $header = array_values($header);
             $mergedData = array_map(function($row) {
@@ -122,7 +149,9 @@ class FileProcessController extends Controller
             session([
                 'merged_data' => $mergedData, 
                 'header' => $header,
-                'service_types' => $serviceTypes
+                'service_types' => $serviceTypes,
+                'segmens' => $segmens,
+                'customer_types' => $customerTypes
             ]);
             session()->flash('success_message', 'File berhasil digabungkan.');
 
@@ -246,6 +275,73 @@ class FileProcessController extends Controller
         } catch (\Exception $e) {
             Log::error('Error checking service type: ' . $e->getMessage());
             return response()->json(['error' => 'Terjadi kesalahan saat memeriksa service type'], 500);
+        }
+    }
+
+    public function getSegmens()
+    {
+        try {
+            $segmens = DB::table('marking_data')
+            ->select('segmen')
+            ->whereNotNull('segmen') 
+            ->distinct()
+            ->pluck('segmen')
+            ->toArray();
+
+            Log::info('Retrieved segmens from database:', $segmens);  // Untuk memastikan data terambil
+
+            if (empty($segmens)) {
+                Log::warning('No segmen data found in marking_data table');
+            }
+            
+            return response()->json($segmens);
+        } catch (\Exception $e) {
+            Log::error('Error fetching segmen types: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat mengambil data segmen type'], 500);
+        }
+    }
+
+    public function checkSegmen($segmen)
+    {
+        try {
+            $exists = DB::table('marking_data')
+                ->where('segmen', $segmen)
+                ->exists();
+            
+            return response()->json(['exists' => $exists]);
+        } catch (\Exception $e) {
+            Log::error('Error checking segmen type: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat memeriksa segmen type'], 500);
+        }
+    }
+
+    public function getCustomerTypes()
+    {
+        try {
+            $customerTypes = DB::table('marking_data')
+                ->select('customer_type')
+                ->distinct()
+                ->pluck('customer_type')
+                ->toArray();
+            
+            return response()->json($customerTypes);
+        } catch (\Exception $e) {
+            Log::error('Error fetching customer type: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat mengambil data customer type'], 500);
+        }
+    }
+
+    public function checkCustomerType($customer)
+    {
+        try {
+            $exists = DB::table('marking_data')
+                ->where('customer_type', $customer)
+                ->exists();
+            
+            return response()->json(['exists' => $exists]);
+        } catch (\Exception $e) {
+            Log::error('Error checking customer type: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat memeriksa customer type'], 500);
         }
     }
 }

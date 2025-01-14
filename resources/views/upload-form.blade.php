@@ -115,10 +115,10 @@
 
             <div id="booking-date-table" class="bg-white shadow-md rounded-lg p-6 mt-10" style="width: 100vw; margin-left: calc(-50vw + 50%); padding-left: 20px; padding-right: 20px;">
                 <h3 class="text-lg font-semibold text-center mb-4">Hasil Proses Data</h3>
-                <div class="overflow-x-auto" style="max-height: 400px; overflow-y: auto;">
+                <div class="overflow-x-auto overflow-y-auto max-h-96">
                     <table class="table-auto w-full border-collapse border border-gray-300">
-                        <thead>
-                            <tr class="bg-gray-200">
+                        <thead class="sticky top-0 bg-gray-200">
+                            <tr>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Booking Date</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Durasi Manja</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Today WO</th>
@@ -126,9 +126,12 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Durasi Tiket</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Reg-1</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Service Type</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Customer Only</th>
                             </tr>
                         </thead>
-                        <tbody id="booking-date-tbody"></tbody>
+                        <tbody id="booking-date-tbody">
+                            <!-- Table body will be populated by JavaScript -->
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -139,12 +142,16 @@
         const mergedData = @json(session('merged_data', []));
         const header = @json(session('header', []));
         const serviceTypes = @json(session('service_types', []));
+        const segmens = @json(session('segmens', []));
+        const customerTypes = @json(session('customer_types', []));
         const columnSelect = document.getElementById('column-select');
         const checkboxContainer = document.getElementById('checkbox-container');
         const bookingDateColumnIndex = header.indexOf('BOOKING DATE');
         const reportedDateColumnIndex = header.indexOf('REPORTED DATE');
         const regionColumnIndex = header.indexOf('REGION');
-        const serviceColumnIndex = header.indexOf('SERVICE');
+        const serviceColumnIndex = header.indexOf('SERVICE TYPE');
+        const segmenColumnIndex = header.indexOf('CUSTOMER SEGMENT');
+        const customertypeColumnIndex = header.indexOf('SOURCE TICKET');
         const processButton = document.getElementById('process-booking-date');
         const bookingDateTable = document.getElementById('booking-date-table');
         const bookingDateTbody = document.getElementById('booking-date-tbody');
@@ -253,13 +260,56 @@
         }
 
         function isValidServiceType(service) {
+            console.log('Checking service type value:', service);
+            console.log('Available service type from database:', serviceTypes);
             if (!service || service === "" || service === undefined || service === null) {
                 return false;
             }
-            return serviceTypes.some(type => 
-                type.toLowerCase() === service.trim().toLowerCase()
-            );
+            
+            // Normalize service type for comparison
+            const normalizedService = service.trim().toLowerCase();
+            
+            // Compare with service types from database
+            return serviceTypes.some(type => {
+                const normalizedType = type.toLowerCase().trim();
+                return normalizedType === normalizedService;
+            });
         }
+
+        function isValidSegmen(segmen) {
+            console.log('Checking segmen type value:', segmen);
+            console.log('Available segmen ice type from database:', segmens);
+            if (!segmen || segmen === "" || segmen === undefined || segmen === null) {
+                return false;
+            }
+            
+            // Normalize service type for comparison
+            const normalizedService = segmen.trim().toLowerCase();
+            
+            // Compare with service types from database
+            return segmens.some(type => {
+                const normalizedType = type.toLowerCase().trim();
+                return normalizedType === normalizedService;
+            });
+        }
+
+        function isValidCustomerType(customer) {
+            console.log('Checking customer type  value:', customer);
+            console.log('Available customer type from database:', customerTypes);
+            if (!customer || customer === "" || customer === undefined || customer === null) {
+                return false;
+            }
+            
+            // Normalize customer type for comparison
+            const normalizedCustomer = customer.trim().toLowerCase();
+            
+            // Compare with customer types from database
+            return customerTypes.some(type => {
+                const normalizedType = type.toLowerCase().trim();
+                return normalizedType === normalizedService;
+            });
+        }
+
 
         processButton.addEventListener('click', function () {
             if (bookingDateColumnIndex === -1) {
@@ -274,6 +324,8 @@
                 const reportedDate = row[reportedDateColumnIndex];
                 const region = row[regionColumnIndex];
                 const service = row[serviceColumnIndex];
+                const segmen = row[segmenColumnIndex];
+                const customer = row[customertypeColumnIndex];
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-gray-50';
@@ -285,7 +337,8 @@
                     { value: extractHourFromDate(bookingDate) },
                     { value: calculateTimeDifference(reportedDate) },
                     { value: isRegionOne(region) ? 'True' : 'False' },
-                    { value: isValidServiceType(service) ? 'True' : 'False' }
+                    { value: isValidServiceType(service) ? 'True' : 'False' },
+                    { value: isValidCustomerType(customer) ? 'True' : 'False' }
                 ];
 
                 cells.forEach(cell => {
