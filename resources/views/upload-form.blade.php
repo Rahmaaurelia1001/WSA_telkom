@@ -128,6 +128,7 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Service Type</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Customer Segmen</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Customer Only</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Classification</th>
                             </tr>
                         </thead>
                         <tbody id="booking-date-tbody">
@@ -145,6 +146,7 @@
         const serviceTypes = @json(session('service_types', []));
         const segmens = @json(session('segmens', []));
         const customerTypes = @json(session('customer_types', []));
+        const classificationTypes = @json(session('classification_types', []));
         const columnSelect = document.getElementById('column-select');
         const checkboxContainer = document.getElementById('checkbox-container');
         const bookingDateColumnIndex = header.indexOf('BOOKING DATE');
@@ -153,6 +155,7 @@
         const serviceColumnIndex = header.indexOf('SERVICE TYPE');
         const segmenColumnIndex = header.indexOf('CUSTOMER SEGMENT');
         const customertypeColumnIndex = header.indexOf('SOURCE TICKET');
+        const classificationtypeColumnIndex = header.indexOf('CLASSIFICATION FLAG');
         const processButton = document.getElementById('process-booking-date');
         const bookingDateTable = document.getElementById('booking-date-table');
         const bookingDateTbody = document.getElementById('booking-date-tbody');
@@ -284,10 +287,8 @@
                 return false;
             }
             
-            // Normalize service type for comparison
             const normalizedSegmen = segmen.trim().toLowerCase();
             
-            // Compare with service types from database
             return segmens.some(type => {
                 const normalizedType = type.toLowerCase().trim();
                 return normalizedType === normalizedSegmen;
@@ -295,20 +296,65 @@
         }
 
         function isValidCustomerType(customer) {
-            console.log('Checking cutomer type value:', customer);
-            console.log('Available customer type from database:', customerTypes);
+            // Detailed logging
+            console.log('Input customer type:', customer);
+            console.log('Available customer types:', customerTypes);
+            
+            // Input validation
             if (!customer || customer === "" || customer === undefined || customer === null) {
+                console.log('Invalid customer input');
                 return false;
             }
             
-            // Normalize service type for comparison
-            const normalizedCustomer = customer.trim().toLowerCase();
+            // Normalize the input
+            const normalizedCustomer = customer.toString().trim().toLowerCase();
+            console.log('Normalized customer type:', normalizedCustomer);
             
-            // Compare with service types from database
-            return customerTypes.some(type => {
-                const normalizedType = type.toLowerCase().trim();
-                return normalizedType === normalizedCustomer;
+            // Check each type with logging
+            const result = customerTypes.some(type => {
+                if (!type) {
+                    console.log('Invalid type in customerTypes array:', type);
+                    return false;
+                }
+                const normalizedType = type.toString().trim().toLowerCase();
+                const matches = normalizedType === normalizedCustomer;
+                console.log(`Comparing: "${normalizedType}" with "${normalizedCustomer}". Match: ${matches}`);
+                return matches;
             });
+            
+            console.log('Final result for customer type validation:', result);
+            return result;
+        }
+
+        function isValidClassificationType(classification) {
+            // Detailed logging
+            console.log('Input classification:', classification);
+            console.log('Available classification types:', classificationTypes);
+            
+            // Input validation
+            if (!classification || classification === "" || classification === undefined || classification === null) {
+                console.log('Invalid classification input');
+                return false;
+            }
+            
+            // Normalize the input
+            const normalizedClassification = classification.toString().trim().toLowerCase();
+            console.log('Normalized classification:', normalizedClassification);
+            
+            // Check each type with logging
+            const result = classificationTypes.some(type => {
+                if (!type) {
+                    console.log('Invalid type in classificationTypes array:', type);
+                    return false;
+                }
+                const normalizedType = type.toString().trim().toLowerCase();
+                const matches = normalizedType === normalizedClassification;
+                console.log(`Comparing: "${normalizedType}" with "${normalizedClassification}". Match: ${matches}`);
+                return matches;
+            });
+            
+            console.log('Final result for classification validation:', result);
+            return result;
         }
 
 
@@ -326,7 +372,8 @@
                 const region = row[regionColumnIndex];
                 const service = row[serviceColumnIndex];
                 const segmen = row[segmenColumnIndex];
-                const customer = row[customertypeColumnIndex];
+                const customer = row[customertypeColumnIndex];  
+                const classification = row[classificationtypeColumnIndex];
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-gray-50';
@@ -340,7 +387,8 @@
                     { value: isRegionOne(region) ? 'True' : 'False' },
                     { value: isValidServiceType(service) ? 'True' : 'False' },
                     { value: isValidSegmen(segmen) ? 'True' : 'False' },
-                    { value: isValidCustomerType(customer) ? 'True' : 'False' }
+                    { value: isValidCustomerType(customer) ? 'True' : 'False' },
+                    { value: isValidClassificationType(classification) ? 'True' : 'False' }
                 ];
 
                 cells.forEach(cell => {

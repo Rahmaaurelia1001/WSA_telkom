@@ -38,8 +38,14 @@ class FileProcessController extends Controller
             ->distinct()
             ->pluck('customer_type')
             ->toArray();
+
+        $classificationTypes = DB::table('marking_data')
+            ->select('classification')
+            ->distinct()
+            ->pluck('classification')
+            ->toArray();
             
-        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes'));
+        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes', 'classificationTypes'));
     }
 
     public function process(Request $request)
@@ -142,6 +148,12 @@ class FileProcessController extends Controller
                 ->pluck('customer_type')
                 ->toArray();
 
+            $classificationTypes = DB::table('marking_data')
+                ->select('classification')
+                ->distinct()
+                ->pluck('classification')
+                ->toArray();
+
             // Convert header and data to numeric arrays
             $header = array_values($header);
             $mergedData = array_map(function($row) {
@@ -153,7 +165,8 @@ class FileProcessController extends Controller
                 'header' => $header,
                 'service_types' => $serviceTypes,
                 'segmens' => $segmens,
-                'customer_types' => $customerTypes
+                'customer_types' => $customerTypes,
+                'classification_types' => $classificationTypes
             ]);
             session()->flash('success_message', 'File berhasil digabungkan.');
 
@@ -345,6 +358,42 @@ class FileProcessController extends Controller
         try {
             $exists = DB::table('marking_data')
                 ->where('customer_type', trim($customer))  // Menggunakan trim() untuk menghapus spasi
+                ->exists();
+                        
+            return response()->json(['exists' => $exists]);
+        } catch (\Exception $e) {
+            Log::error('Error checking customer type: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat memeriksa customer type'], 500);
+        }
+    }
+
+    public function getClassificationTypes()
+    {
+        try {
+            $classificationTypes = DB::table('marking_data')
+                ->select('classification')
+                ->distinct()
+                ->pluck('classification')
+                ->toArray();
+
+            Log::info('Retrieved segmens from database:', $classificationTypes);  // Untuk memastikan data terambil
+
+            if (empty($classificationTypes)) {
+                Log::warning('No customer type data found in marking_data table');
+            }
+            
+            return response()->json($classificationTypes);
+        } catch (\Exception $e) {
+            Log::error('Error fetching segmen types: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat mengambil data customer type'], 500);
+        }
+    }
+
+    public function checkClassificationType($classification)
+    {
+        try {
+            $exists = DB::table('marking_data')
+                ->where('classification', trim($classification))  // Menggunakan trim() untuk menghapus spasi
                 ->exists();
                         
             return response()->json(['exists' => $exists]);
