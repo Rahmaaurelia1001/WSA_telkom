@@ -129,6 +129,7 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Customer Segmen</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Customer Only</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Classification</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Valid Ticket Group</th>
                             </tr>
                         </thead>
                         <tbody id="booking-date-tbody">
@@ -147,6 +148,7 @@
         const segmens = @json(session('segmens', []));
         const customerTypes = @json(session('customer_types', []));
         const classificationTypes = @json(session('classification_types', []));
+        const customerSegments = @json(session('customer_segments', []));
         const columnSelect = document.getElementById('column-select');
         const checkboxContainer = document.getElementById('checkbox-container');
         const bookingDateColumnIndex = header.indexOf('BOOKING DATE');
@@ -156,6 +158,7 @@
         const segmenColumnIndex = header.indexOf('CUSTOMER SEGMENT');
         const customertypeColumnIndex = header.indexOf('SOURCE TICKET');
         const classificationtypeColumnIndex = header.indexOf('CLASSIFICATION FLAG');
+        const customersegmentsColumnIndex = header.indexOf('CUSTOMER TYPE');
         const processButton = document.getElementById('process-booking-date');
         const bookingDateTable = document.getElementById('booking-date-table');
         const bookingDateTbody = document.getElementById('booking-date-tbody');
@@ -357,6 +360,37 @@
             return result;
         }
 
+        function isValidCustomerSegment(customersegment) {
+            // Detailed logging
+            console.log('Input customer segment type:', customersegment);
+            console.log('Available customer segment types:', customerSegments);
+            
+            // Input validation
+            if (!customersegment || customersegment === "" || customersegment === undefined || customersegment === null) {
+                console.log('Invalid customer input');
+                return false;
+            }
+            
+            // Normalize the input
+            const normalizedCustomerSegment = customersegment.toString().trim().toLowerCase();
+            console.log('Normalized customer segment type:', normalizedCustomerSegment);
+            
+            // Check each type with logging
+            const result = customerSegments.some(type => {
+                if (!type) {
+                    console.log('Invalid type in customerSegments array:', type);
+                    return false;
+                }
+                const normalizedType = type.toString().trim().toLowerCase();
+                const matches = normalizedType === normalizedCustomerSegment; // Fixed: was comparing with normalizedCustomer
+                console.log(`Comparing: "${normalizedType}" with "${normalizedCustomerSegment}". Match: ${matches}`);
+                return matches;
+            });
+            
+            console.log('Final result for customer segment validation:', result);
+            return result;
+        }
+
 
         processButton.addEventListener('click', function () {
             if (bookingDateColumnIndex === -1) {
@@ -374,6 +408,7 @@
                 const segmen = row[segmenColumnIndex];
                 const customer = row[customertypeColumnIndex];  
                 const classification = row[classificationtypeColumnIndex];
+                const customersegment = row[customersegmentsColumnIndex];
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-gray-50';
@@ -388,7 +423,8 @@
                     { value: isValidServiceType(service) ? 'True' : 'False' },
                     { value: isValidSegmen(segmen) ? 'True' : 'False' },
                     { value: isValidCustomerType(customer) ? 'True' : 'False' },
-                    { value: isValidClassificationType(classification) ? 'True' : 'False' }
+                    { value: isValidClassificationType(classification) ? 'True' : 'False' },
+                    { value: isValidCustomerSegment(customersegment) ? 'True' : 'False' }
                 ];
 
                 cells.forEach(cell => {
