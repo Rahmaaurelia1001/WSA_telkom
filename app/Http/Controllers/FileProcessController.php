@@ -52,8 +52,14 @@ class FileProcessController extends Controller
             ->distinct()
             ->pluck('customer_segment')
             ->toArray();
+        
+        $zTypes = DB::table('marking_data')
+            ->select('z')
+            ->distinct()
+            ->pluck('z')
+            ->toArray();
             
-        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes', 'classificationTypes', 'customerSegments'));
+        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes', 'classificationTypes', 'customerSegments', 'zTypes'));
     }
 
     public function process(Request $request)
@@ -170,6 +176,12 @@ class FileProcessController extends Controller
                 ->pluck('customer_segment')
                 ->toArray();
 
+            $zTypes = DB::table('marking_data')
+                ->select('z')
+                ->distinct()
+                ->pluck('z')
+                ->toArray();
+
             // Convert header and data to numeric arrays
             $header = array_values($header);
             $mergedData = array_map(function($row) {
@@ -183,7 +195,8 @@ class FileProcessController extends Controller
                 'segmens' => $segmens,
                 'customer_types' => $customerTypes,
                 'classification_types' => $classificationTypes,
-                'customer_segments' => $customerSegments
+                'customer_segments' => $customerSegments,
+                'zs' => $zTypes
             ]);
             session()->flash('success_message', 'File berhasil digabungkan.');
 
@@ -455,6 +468,42 @@ class FileProcessController extends Controller
         } catch (\Exception $e) {
             Log::error('Error checking customer type: ' . $e->getMessage());
             return response()->json(['error' => 'Terjadi kesalahan saat memeriksa customer segment'], 500);
+        }
+    }
+
+    public function getZTypes()
+    {
+        try {
+            $zTypes = DB::table('marking_data')
+                ->select('z')
+                ->distinct()
+                ->pluck('z')
+                ->toArray();
+
+            Log::info('Retrieved segmens from database:', $zTypes);  // Untuk memastikan data terambil
+
+            if (empty($zTypes)) {
+                Log::warning('No segmen data found in marking_data table');
+            }
+            
+            return response()->json($zTypes);
+        } catch (\Exception $e) {
+            Log::error('Error fetching segmen types: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat mengambil data segmen type'], 500);
+        }
+    }
+
+    public function checkZType($z)
+    {
+        try {
+            $exists = DB::table('marking_data')
+                ->where('z', $z)
+                ->exists();
+            
+            return response()->json(['exists' => $exists]);
+        } catch (\Exception $e) {
+            Log::error('Error checking segmen type: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat memeriksa segmen type'], 500);
         }
     }
 }

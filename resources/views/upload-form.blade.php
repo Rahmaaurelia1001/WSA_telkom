@@ -131,6 +131,8 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Classification</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Valid Ticket Group</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">PDA</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">NOT GUARANTEE</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">GUARANTEE</th>
                             </tr>
                         </thead>
                         <tbody id="booking-date-tbody">
@@ -150,6 +152,7 @@
         const customerTypes = @json(session('customer_types', []));
         const classificationTypes = @json(session('classification_types', []));
         const customerSegments = @json(session('customer_segments', []));
+        const zTypes = @json(session('zs', []));
         const columnSelect = document.getElementById('column-select');
         const checkboxContainer = document.getElementById('checkbox-container');
         const bookingDateColumnIndex = header.indexOf('BOOKING DATE');
@@ -161,6 +164,7 @@
         const classificationtypeColumnIndex = header.indexOf('CLASSIFICATION FLAG');
         const customersegmentsColumnIndex = header.indexOf('CUSTOMER TYPE');
         const symptomColumnIndex = header.indexOf('SYMPTOM');
+        const zColumnIndex = header.indexOf('GUARANTE STATUS');
         const processButton = document.getElementById('process-booking-date');
         const bookingDateTable = document.getElementById('booking-date-table');
         const bookingDateTbody = document.getElementById('booking-date-tbody');
@@ -393,54 +397,91 @@
             return result;
         }
 
+        function isValidZType(z) {
+            // Detailed logging
+            console.log('Input z type:', z);
+            console.log('Available z types:', zTypes);
+            
+            // Input validation
+            if (!z || z === "" || z === undefined || z === null) {
+                console.log('Invalid customer input');
+                return false;
+            }
+            
+            // Normalize the input
+            const normalizedZ = z.toString().trim().toLowerCase();
+            console.log('Normalized customer type:', normalizedZ);
+            
+            // Check each type with logging
+            const result = zTypes.some(type => {
+                if (!type) {
+                    console.log('Invalid type in z array:', type);
+                    return false;
+                }
+                const normalizedType = type.toString().trim().toLowerCase();
+                const matches = normalizedType === normalizedZ;
+                console.log(`Comparing: "${normalizedType}" with "${normalizedZ}". Match: ${matches}`);
+                return matches;
+            });
+            
+            console.log('Final result for customer type validation:', result);
+            return result;
+        }
 
-// ... (keep all existing variable declarations)
+        // Add new function for PDA check with console logging
+        function checkPDAInSymptom(symptom) {
+            console.log('=== PDA Check Start ===');
+            console.log('Input SYMPTOM:', symptom);
+            
+            if (!symptom) {
+                console.log('SYMPTOM is empty/null/undefined');
+                console.log('Returning: false');
+                console.log('=== PDA Check End ===');
+                return false;
+            }
+            
+            const upperSymptom = symptom.toUpperCase();
+            console.log('Uppercase SYMPTOM:', upperSymptom);
+            
+            const hasPDA = upperSymptom.includes('PDA');
+            console.log('Contains PDA:', hasPDA);
+            console.log('Returning:', !hasPDA);
+            console.log('=== PDA Check End ===');
+            
+            return !hasPDA;
+        }
 
-// Add new function for PDA check with console logging
-function checkPDAInSymptom(symptom) {
-    console.log('=== PDA Check Start ===');
-    console.log('Input SYMPTOM:', symptom);
-    
-    if (!symptom) {
-        console.log('SYMPTOM is empty/null/undefined');
-        console.log('Returning: false');
-        console.log('=== PDA Check End ===');
-        return false;
-    }
-    
-    const upperSymptom = symptom.toUpperCase();
-    console.log('Uppercase SYMPTOM:', upperSymptom);
-    
-    const hasPDA = upperSymptom.includes('PDA');
-    console.log('Contains PDA:', hasPDA);
-    console.log('Returning:', !hasPDA);
-    console.log('=== PDA Check End ===');
-    
-    return !hasPDA;
-}
+        function isGuaranteeStatus(status) {
+            if (!status || status === "" || status === undefined || status === null) {
+                return false;
+            }
 
-processButton.addEventListener('click', function () {
-    console.log('=== Process Button Clicked ===');
-    console.log('Booking Date Column Index:', bookingDateColumnIndex);
-    
-    if (bookingDateColumnIndex === -1) {
-        console.error('Booking Date column not found!');
-        alert('Kolom "BOOKING DATE" tidak ditemukan!');
-        return;
-    }
+            // Cek apakah status adalah "GUARANTEE"
+            return status.trim().toUpperCase() === 'GUARANTEE';
+        }
 
-    bookingDateTbody.innerHTML = '';
-    console.log('Cleared table body');
+        processButton.addEventListener('click', function () {
+            console.log('=== Process Button Clicked ===');
+            console.log('Booking Date Column Index:', bookingDateColumnIndex);
+            
+            if (bookingDateColumnIndex === -1) {
+                console.error('Booking Date column not found!');
+                alert('Kolom "BOOKING DATE" tidak ditemukan!');
+                return;
+            }
 
-    // Update the table header to include PDA column
-    const thead = document.querySelector('#booking-date-table thead tr');
-    if (!thead.querySelector('th:nth-last-child(1)').textContent.includes('PDA')) {
-        console.log('Adding PDA column header');
-        const pdaTh = document.createElement('th');
-        pdaTh.className = 'border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700';
-        pdaTh.textContent = 'PDA';
-        thead.appendChild(pdaTh);
-    }
+            bookingDateTbody.innerHTML = '';
+            console.log('Cleared table body');
+
+            // Update the table header to include PDA column
+            // const thead = document.querySelector('#booking-date-table thead tr');
+            // if (!thead.querySelector('th:nth-last-child(1)').textContent.includes('PDA')) {
+            //     console.log('Adding PDA column header');
+            //     const pdaTh = document.createElement('th');
+            //     pdaTh.className = 'border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700';
+            //     pdaTh.textContent = 'PDA';
+            //     thead.appendChild(pdaTh);
+            // }
 
     console.log('Processing', mergedData.length, 'rows of data');
 
@@ -456,6 +497,8 @@ processButton.addEventListener('click', function () {
         const classification = row[classificationtypeColumnIndex];
         const customersegment = row[customersegmentsColumnIndex];
         const symptom = row[symptomColumnIndex];
+        const z = row[zColumnIndex];
+        const guaranteeStatus = row[zColumnIndex];
 
         console.log('Row Data:', {
             bookingDate,
@@ -484,7 +527,9 @@ processButton.addEventListener('click', function () {
             { value: isValidCustomerType(customer) ? 'True' : 'False' },
             { value: isValidClassificationType(classification) ? 'True' : 'False' },
             { value: isValidCustomerSegment(customersegment) ? 'True' : 'False' },
-            { value: checkPDAInSymptom(symptom) ? 'True' : 'False' }
+            { value: checkPDAInSymptom(symptom) ? 'True' : 'False' },
+            { value: isValidZType(z) ? 'True' : 'False' },
+            { value: isGuaranteeStatus(guaranteeStatus) ? 'True' : 'False' }
         ];
 
         console.log('Generated cell values:', cells.map(cell => cell.value));
