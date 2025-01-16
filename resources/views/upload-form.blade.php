@@ -132,7 +132,10 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Valid Ticket Group</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">PDA</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">NOT GUARANTEE</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TIKET AKTIF</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">GUARANTEE</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">CLOSED</th>
+                                <!-- <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TIKET AKTIF</th> -->
                             </tr>
                         </thead>
                         <tbody id="booking-date-tbody">
@@ -165,6 +168,7 @@
         const customersegmentsColumnIndex = header.indexOf('CUSTOMER TYPE');
         const symptomColumnIndex = header.indexOf('SYMPTOM');
         const zColumnIndex = header.indexOf('GUARANTE STATUS');
+        const statusColumnIndex = header.indexOf('STATUS');
         const processButton = document.getElementById('process-booking-date');
         const bookingDateTable = document.getElementById('booking-date-table');
         const bookingDateTbody = document.getElementById('booking-date-tbody');
@@ -485,6 +489,24 @@
 
     console.log('Processing', mergedData.length, 'rows of data');
 
+    function isValidStatusType(status) {
+        const isClosed = status === 'CLOSED';
+        console.log('Checking status:', status, 'Is it CLOSED?', isClosed); // Log untuk memeriksa status
+        return isClosed;
+    }
+
+    function determineTicketStatus(status) {
+    const isClosed = isValidStatusType(status);
+    
+    // Jika statusnya CLOSED, maka TIKET AKTIF adalah false
+    // const ticketAktif = isClosed ? false : true;
+    
+
+    // return {
+    //     ticketAktif: ticketAktif,
+    //     closedStatus: closedStatus
+    // };
+}
     mergedData.forEach((row, index) => {
         console.log(`\n=== Processing Row ${index + 1} ===`);
         
@@ -499,6 +521,7 @@
         const symptom = row[symptomColumnIndex];
         const z = row[zColumnIndex];
         const guaranteeStatus = row[zColumnIndex];
+        const status = row[statusColumnIndex]; 
 
         console.log('Row Data:', {
             bookingDate,
@@ -514,6 +537,9 @@
 
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50';
+
+        const isClosed = status === 'CLOSED'; // Memeriksa jika statusnya CLOSED
+        const ticketAktif = isClosed ? false : true;
         
         const cells = [
             { value: bookingDate || '' },
@@ -529,7 +555,9 @@
             { value: isValidCustomerSegment(customersegment) ? 'True' : 'False' },
             { value: checkPDAInSymptom(symptom) ? 'True' : 'False' },
             { value: isValidZType(z) ? 'True' : 'False' },
-            { value: isGuaranteeStatus(guaranteeStatus) ? 'True' : 'False' }
+            { value: ticketAktif ? 'True' : 'False' },
+            { value: isGuaranteeStatus(guaranteeStatus) ? 'True' : 'False' },
+            { value: isValidStatusType(status) ? 'True' : 'False' }
         ];
 
         console.log('Generated cell values:', cells.map(cell => cell.value));
