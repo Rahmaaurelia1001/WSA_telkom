@@ -135,7 +135,7 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TIKET AKTIF</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">GUARANTEE</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">CLOSED</th>
-                                <!-- <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TIKET AKTIF</th> -->
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Filter</th>
                             </tr>
                         </thead>
                         <tbody id="booking-date-tbody">
@@ -172,6 +172,29 @@
         const processButton = document.getElementById('process-booking-date');
         const bookingDateTable = document.getElementById('booking-date-table');
         const bookingDateTbody = document.getElementById('booking-date-tbody');
+        const bookingDateColumnIndexProcessed = mergedData[0].indexOf('BOOKING DATE');
+        const reportedDateColumnIndexProcessed = mergedData[0].indexOf('REPORTED DATE');
+        const regionColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'REG-1');
+const serviceColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Service Type');
+const segmenColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Customer Segment');
+const customertypeColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Customer Only');
+const classificationtypeColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Classification');
+const customersegmentsColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Valid Ticket Group');
+const symptomColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'PDA');
+const zColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'NOT GUARANTEE');
+const statusColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'TIKET AKTIF');
+
+// Log the results
+// Log the indexes to check if they are found
+console.log('Region Column Index:', regionColumnIndexProcessed);
+console.log('Service Column Index:', serviceColumnIndexProcessed);
+console.log('Customer Segment Column Index:', segmenColumnIndexProcessed);
+console.log('Customer Type Column Index:', customertypeColumnIndexProcessed);
+console.log('Classification Column Index:', classificationtypeColumnIndexProcessed);
+console.log('Customer Segments Column Index:', customersegmentsColumnIndexProcessed);
+console.log('Symptom Column Index:', symptomColumnIndexProcessed);
+console.log('Z Column Index:', zColumnIndexProcessed);
+console.log('Status Column Index:', statusColumnIndexProcessed);
 
         function populateCheckboxes() {
             const selectedColumn = columnSelect.value;
@@ -497,16 +520,48 @@
 
     function determineTicketStatus(status) {
     const isClosed = isValidStatusType(status);
-    
-    // Jika statusnya CLOSED, maka TIKET AKTIF adalah false
-    // const ticketAktif = isClosed ? false : true;
-    
+    }
 
-    // return {
-    //     ticketAktif: ticketAktif,
-    //     closedStatus: closedStatus
-    // };
-}
+    function isValidTicket(row) {
+    // Ambil nilai dari row menggunakan indeks yang sudah didefinisikan
+    const reg1 = isRegionOne(row[regionColumnIndexProcessed]);  // Pastikan regionColumnIndexProcessed sudah benar
+    const serviceType = isValidServiceType(row[serviceColumnIndexProcessed]);
+    const customerSegmen = isValidSegmen(row[segmenColumnIndexProcessed]);
+    const customerOnly = isValidCustomerType(row[customertypeColumnIndexProcessed]);
+    const classification = isValidClassificationType(row[classificationtypeColumnIndexProcessed]);
+    const validTicketGroup = isValidCustomerSegment(row[customersegmentsColumnIndexProcessed]);
+    const pda = checkPDAInSymptom(row[symptomColumnIndexProcessed]);
+    const notGuarantee = !isGuaranteeStatus(row[zColumnIndexProcessed]);
+    const tiketAktif = row[statusColumnIndexProcessed] !== 'CLOSED'; // Tiket aktif jika status bukan CLOSED
+
+    // Log data untuk memastikan nilai yang diambil
+        console.log('Checking row:', {
+            reg1,
+            serviceType,
+            customerSegmen,
+            customerOnly,
+            classification,
+            validTicketGroup,
+            pda,
+            notGuarantee,
+            tiketAktif
+        });
+
+        // Periksa apakah semua kondisi terpenuhi
+        const isValid = reg1 &&
+                        serviceType &&
+                        customerSegmen &&
+                        customerOnly &&
+                        classification &&
+                        validTicketGroup &&
+                        pda &&
+                        notGuarantee &&
+                        tiketAktif;
+
+        console.log('Is valid ticket:', isValid);
+        return isValid ? 'True' : 'False'; // Return 'True' jika valid, 'False' jika tidak
+    }
+
     mergedData.forEach((row, index) => {
         console.log(`\n=== Processing Row ${index + 1} ===`);
         
@@ -522,18 +577,6 @@
         const z = row[zColumnIndex];
         const guaranteeStatus = row[zColumnIndex];
         const status = row[statusColumnIndex]; 
-
-        console.log('Row Data:', {
-            bookingDate,
-            reportedDate,
-            region,
-            service,
-            segmen,
-            customer,
-            classification,
-            customersegment,
-            symptom
-        });
 
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50';
@@ -557,7 +600,8 @@
             { value: isValidZType(z) ? 'True' : 'False' },
             { value: ticketAktif ? 'True' : 'False' },
             { value: isGuaranteeStatus(guaranteeStatus) ? 'True' : 'False' },
-            { value: isValidStatusType(status) ? 'True' : 'False' }
+            { value: isValidStatusType(status) ? 'True' : 'False' },
+            { value: isValidTicket(row) ? 'True' : 'False' }
         ];
 
         console.log('Generated cell values:', cells.map(cell => cell.value));
