@@ -16,7 +16,7 @@
         <div class="overflow-x-auto bg-white shadow-md rounded-lg">
             <table class="min-w-full border-collapse border border-gray-300">
                 <!-- Kepala Tabel Warna Merah -->
-                <thead class="bg-red-500">
+                <thead class="bg-red-600">
                     <tr>
                         <th class="py-3 px-6 text-left text-white font-semibold border-b">Name</th>
                         <th class="py-3 px-6 text-left text-white font-semibold border-b">Email</th>
@@ -37,7 +37,7 @@
                                 <form action="{{ route('admin.users.destroy', $user) }}" method="POST">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-500 hover:underline">Delete</button>
+                                    <button type="submit" class="text-red-600 hover:underline">Delete</button>
                                 </form>
                             </td>
                         </tr>

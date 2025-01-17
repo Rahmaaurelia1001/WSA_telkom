@@ -9,7 +9,7 @@
 <body class="bg-gray-100">
 
     <div class="container mx-auto p-6">
-        <h2 class="text-2xl font-semibold mb-6">Edit User</h2>
+        <h2 class="text-2xl font-semibold mb-6 text-center">Edit User</h2>
 
         @if ($errors->any())
             <div class="bg-red-100 text-red-700 p-4 rounded mb-4">
@@ -21,7 +21,7 @@
             </div>
         @endif
 
-        <form action="{{ route('admin.users.update', $user) }}" method="POST" class="bg-white p-6 rounded shadow-md">
+        <form action="{{ route('admin.users.update', $user) }}" method="POST" class="bg-white p-10 rounded shadow-md max-w-2xl mx-auto">
             @csrf
             @method('PUT')
 
@@ -41,7 +41,7 @@
                 <a href="{{ route('admin.users.list') }}" class="px-4 py-2 bg-gray-500 text-white rounded-lg mr-4 hover:bg-gray-600">
                     Cancel
                 </a>
-                <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-blue-600">
                     Save Changes
                 </button>
             </div>
