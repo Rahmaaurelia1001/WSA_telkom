@@ -19,5 +19,13 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+         // Data role default
+         Role::create(['name' => 'admin']);
+         Role::create(['name' => 'user']);
+     
     }
+
+    
+       
 }
