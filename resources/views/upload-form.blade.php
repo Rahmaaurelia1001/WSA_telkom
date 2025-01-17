@@ -129,6 +129,13 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Customer Segmen</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Customer Only</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Classification</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Valid Ticket Group</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">PDA</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">NOT GUARANTEE</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TIKET AKTIF</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">GUARANTEE</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">CLOSED</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Filter</th>
                             </tr>
                         </thead>
                         <tbody id="booking-date-tbody">
@@ -147,6 +154,8 @@
         const segmens = @json(session('segmens', []));
         const customerTypes = @json(session('customer_types', []));
         const classificationTypes = @json(session('classification_types', []));
+        const customerSegments = @json(session('customer_segments', []));
+        const zTypes = @json(session('zs', []));
         const columnSelect = document.getElementById('column-select');
         const checkboxContainer = document.getElementById('checkbox-container');
         const bookingDateColumnIndex = header.indexOf('BOOKING DATE');
@@ -156,9 +165,36 @@
         const segmenColumnIndex = header.indexOf('CUSTOMER SEGMENT');
         const customertypeColumnIndex = header.indexOf('SOURCE TICKET');
         const classificationtypeColumnIndex = header.indexOf('CLASSIFICATION FLAG');
+        const customersegmentsColumnIndex = header.indexOf('CUSTOMER TYPE');
+        const symptomColumnIndex = header.indexOf('SYMPTOM');
+        const zColumnIndex = header.indexOf('GUARANTE STATUS');
+        const statusColumnIndex = header.indexOf('STATUS');
         const processButton = document.getElementById('process-booking-date');
         const bookingDateTable = document.getElementById('booking-date-table');
         const bookingDateTbody = document.getElementById('booking-date-tbody');
+        const bookingDateColumnIndexProcessed = mergedData[0].indexOf('BOOKING DATE');
+        const reportedDateColumnIndexProcessed = mergedData[0].indexOf('REPORTED DATE');
+        const regionColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'REG-1');
+const serviceColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Service Type');
+const segmenColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Customer Segment');
+const customertypeColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Customer Only');
+const classificationtypeColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Classification');
+const customersegmentsColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Valid Ticket Group');
+const symptomColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'PDA');
+const zColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'NOT GUARANTEE');
+const statusColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'TIKET AKTIF');
+
+// Log the results
+// Log the indexes to check if they are found
+console.log('Region Column Index:', regionColumnIndexProcessed);
+console.log('Service Column Index:', serviceColumnIndexProcessed);
+console.log('Customer Segment Column Index:', segmenColumnIndexProcessed);
+console.log('Customer Type Column Index:', customertypeColumnIndexProcessed);
+console.log('Classification Column Index:', classificationtypeColumnIndexProcessed);
+console.log('Customer Segments Column Index:', customersegmentsColumnIndexProcessed);
+console.log('Symptom Column Index:', symptomColumnIndexProcessed);
+console.log('Z Column Index:', zColumnIndexProcessed);
+console.log('Status Column Index:', statusColumnIndexProcessed);
 
         function populateCheckboxes() {
             const selectedColumn = columnSelect.value;
@@ -357,52 +393,234 @@
             return result;
         }
 
+        function isValidCustomerSegment(customersegment) {
+            // Detailed logging
+            console.log('Input customer segment type:', customersegment);
+            console.log('Available customer segment types:', customerSegments);
+            
+            // Input validation
+            if (!customersegment || customersegment === "" || customersegment === undefined || customersegment === null) {
+                console.log('Invalid customer input');
+                return false;
+            }
+            
+            // Normalize the input
+            const normalizedCustomerSegment = customersegment.toString().trim().toLowerCase();
+            console.log('Normalized customer segment type:', normalizedCustomerSegment);
+            
+            // Check each type with logging
+            const result = customerSegments.some(type => {
+                if (!type) {
+                    console.log('Invalid type in customerSegments array:', type);
+                    return false;
+                }
+                const normalizedType = type.toString().trim().toLowerCase();
+                const matches = normalizedType === normalizedCustomerSegment; // Fixed: was comparing with normalizedCustomer
+                console.log(`Comparing: "${normalizedType}" with "${normalizedCustomerSegment}". Match: ${matches}`);
+                return matches;
+            });
+            
+            console.log('Final result for customer segment validation:', result);
+            return result;
+        }
+
+        function isValidZType(z) {
+            // Detailed logging
+            console.log('Input z type:', z);
+            console.log('Available z types:', zTypes);
+            
+            // Input validation
+            if (!z || z === "" || z === undefined || z === null) {
+                console.log('Invalid customer input');
+                return false;
+            }
+            
+            // Normalize the input
+            const normalizedZ = z.toString().trim().toLowerCase();
+            console.log('Normalized customer type:', normalizedZ);
+            
+            // Check each type with logging
+            const result = zTypes.some(type => {
+                if (!type) {
+                    console.log('Invalid type in z array:', type);
+                    return false;
+                }
+                const normalizedType = type.toString().trim().toLowerCase();
+                const matches = normalizedType === normalizedZ;
+                console.log(`Comparing: "${normalizedType}" with "${normalizedZ}". Match: ${matches}`);
+                return matches;
+            });
+            
+            console.log('Final result for customer type validation:', result);
+            return result;
+        }
+
+        // Add new function for PDA check with console logging
+        function checkPDAInSymptom(symptom) {
+            console.log('=== PDA Check Start ===');
+            console.log('Input SYMPTOM:', symptom);
+            
+            if (!symptom) {
+                console.log('SYMPTOM is empty/null/undefined');
+                console.log('Returning: false');
+                console.log('=== PDA Check End ===');
+                return false;
+            }
+            
+            const upperSymptom = symptom.toUpperCase();
+            console.log('Uppercase SYMPTOM:', upperSymptom);
+            
+            const hasPDA = upperSymptom.includes('PDA');
+            console.log('Contains PDA:', hasPDA);
+            console.log('Returning:', !hasPDA);
+            console.log('=== PDA Check End ===');
+            
+            return !hasPDA;
+        }
+
+        function isGuaranteeStatus(status) {
+            if (!status || status === "" || status === undefined || status === null) {
+                return false;
+            }
+
+            // Cek apakah status adalah "GUARANTEE"
+            return status.trim().toUpperCase() === 'GUARANTEE';
+        }
 
         processButton.addEventListener('click', function () {
+            console.log('=== Process Button Clicked ===');
+            console.log('Booking Date Column Index:', bookingDateColumnIndex);
+            
             if (bookingDateColumnIndex === -1) {
+                console.error('Booking Date column not found!');
                 alert('Kolom "BOOKING DATE" tidak ditemukan!');
                 return;
             }
 
             bookingDateTbody.innerHTML = '';
+            console.log('Cleared table body');
 
-            mergedData.forEach(row => {
-                const bookingDate = row[bookingDateColumnIndex];
-                const reportedDate = row[reportedDateColumnIndex];
-                const region = row[regionColumnIndex];
-                const service = row[serviceColumnIndex];
-                const segmen = row[segmenColumnIndex];
-                const customer = row[customertypeColumnIndex];  
-                const classification = row[classificationtypeColumnIndex];
+            // Update the table header to include PDA column
+            // const thead = document.querySelector('#booking-date-table thead tr');
+            // if (!thead.querySelector('th:nth-last-child(1)').textContent.includes('PDA')) {
+            //     console.log('Adding PDA column header');
+            //     const pdaTh = document.createElement('th');
+            //     pdaTh.className = 'border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700';
+            //     pdaTh.textContent = 'PDA';
+            //     thead.appendChild(pdaTh);
+            // }
 
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-gray-50';
-                
-                const cells = [
-                    { value: bookingDate || '' },
-                    { value: calculateTimeDifference(bookingDate) },
-                    { value: isTodayWO(bookingDate) ? 'True' : 'False' },
-                    { value: extractHourFromDate(bookingDate) },
-                    { value: calculateTimeDifference(reportedDate) },
-                    { value: isRegionOne(region) ? 'True' : 'False' },
-                    { value: isValidServiceType(service) ? 'True' : 'False' },
-                    { value: isValidSegmen(segmen) ? 'True' : 'False' },
-                    { value: isValidCustomerType(customer) ? 'True' : 'False' },
-                    { value: isValidClassificationType(classification) ? 'True' : 'False' }
-                ];
+    console.log('Processing', mergedData.length, 'rows of data');
 
-                cells.forEach(cell => {
-                    const td = document.createElement('td');
-                    td.className = 'border border-gray-300 px-4 py-2 text-center text-sm text-gray-600';
-                    td.textContent = cell.value;
-                    tr.appendChild(td);
-                });
+    function isValidStatusType(status) {
+        const isClosed = status === 'CLOSED';
+        console.log('Checking status:', status, 'Is it CLOSED?', isClosed); // Log untuk memeriksa status
+        return isClosed;
+    }
 
-                bookingDateTbody.appendChild(tr);
-            });
+    function determineTicketStatus(status) {
+    const isClosed = isValidStatusType(status);
+    }
 
-            bookingDateTable.classList.remove('hidden');
+    function isValidTicket(row) {
+    // Ambil nilai dari row menggunakan indeks yang sudah didefinisikan
+    const reg1 = isRegionOne(row[regionColumnIndexProcessed]);  // Pastikan regionColumnIndexProcessed sudah benar
+    const serviceType = isValidServiceType(row[serviceColumnIndexProcessed]);
+    const customerSegmen = isValidSegmen(row[segmenColumnIndexProcessed]);
+    const customerOnly = isValidCustomerType(row[customertypeColumnIndexProcessed]);
+    const classification = isValidClassificationType(row[classificationtypeColumnIndexProcessed]);
+    const validTicketGroup = isValidCustomerSegment(row[customersegmentsColumnIndexProcessed]);
+    const pda = checkPDAInSymptom(row[symptomColumnIndexProcessed]);
+    const notGuarantee = !isGuaranteeStatus(row[zColumnIndexProcessed]);
+    const tiketAktif = row[statusColumnIndexProcessed] !== 'CLOSED'; // Tiket aktif jika status bukan CLOSED
+
+    // Log data untuk memastikan nilai yang diambil
+        console.log('Checking row:', {
+            reg1,
+            serviceType,
+            customerSegmen,
+            customerOnly,
+            classification,
+            validTicketGroup,
+            pda,
+            notGuarantee,
+            tiketAktif
         });
+
+        // Periksa apakah semua kondisi terpenuhi
+        const isValid = reg1 &&
+                        serviceType &&
+                        customerSegmen &&
+                        customerOnly &&
+                        classification &&
+                        validTicketGroup &&
+                        pda &&
+                        notGuarantee &&
+                        tiketAktif;
+
+        console.log('Is valid ticket:', isValid);
+        return isValid ? 'True' : 'False'; // Return 'True' jika valid, 'False' jika tidak
+    }
+
+    mergedData.forEach((row, index) => {
+        console.log(`\n=== Processing Row ${index + 1} ===`);
+        
+        const bookingDate = row[bookingDateColumnIndex];
+        const reportedDate = row[reportedDateColumnIndex];
+        const region = row[regionColumnIndex];
+        const service = row[serviceColumnIndex];
+        const segmen = row[segmenColumnIndex];
+        const customer = row[customertypeColumnIndex];  
+        const classification = row[classificationtypeColumnIndex];
+        const customersegment = row[customersegmentsColumnIndex];
+        const symptom = row[symptomColumnIndex];
+        const z = row[zColumnIndex];
+        const guaranteeStatus = row[zColumnIndex];
+        const status = row[statusColumnIndex]; 
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+
+        const isClosed = status === 'CLOSED'; // Memeriksa jika statusnya CLOSED
+        const ticketAktif = isClosed ? false : true;
+        
+        const cells = [
+            { value: bookingDate || '' },
+            { value: calculateTimeDifference(bookingDate) },
+            { value: isTodayWO(bookingDate) ? 'True' : 'False' },
+            { value: extractHourFromDate(bookingDate) },
+            { value: calculateTimeDifference(reportedDate) },
+            { value: isRegionOne(region) ? 'True' : 'False' },
+            { value: isValidServiceType(service) ? 'True' : 'False' },
+            { value: isValidSegmen(segmen) ? 'True' : 'False' },
+            { value: isValidCustomerType(customer) ? 'True' : 'False' },
+            { value: isValidClassificationType(classification) ? 'True' : 'False' },
+            { value: isValidCustomerSegment(customersegment) ? 'True' : 'False' },
+            { value: checkPDAInSymptom(symptom) ? 'True' : 'False' },
+            { value: isValidZType(z) ? 'True' : 'False' },
+            { value: ticketAktif ? 'True' : 'False' },
+            { value: isGuaranteeStatus(guaranteeStatus) ? 'True' : 'False' },
+            { value: isValidStatusType(status) ? 'True' : 'False' },
+            { value: isValidTicket(row) ? 'True' : 'False' }
+        ];
+
+        console.log('Generated cell values:', cells.map(cell => cell.value));
+
+        cells.forEach((cell, cellIndex) => {
+            const td = document.createElement('td');
+            td.className = 'border border-gray-300 px-4 py-2 text-center text-sm text-gray-600';
+            td.textContent = cell.value;
+            tr.appendChild(td);
+        });
+
+        bookingDateTbody.appendChild(tr);
+        console.log(`Row ${index + 1} added to table`);
+    });
+
+    bookingDateTable.classList.remove('hidden');
+    console.log('Table visibility updated');
+    console.log('=== Process Complete ===');
+});
 
         columnSelect.addEventListener('change', populateCheckboxes);
         populateCheckboxes();
