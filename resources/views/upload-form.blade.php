@@ -136,6 +136,7 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">GUARANTEE</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">CLOSED</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Filter</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Assurance</th>
                             </tr>
                         </thead>
                         <tbody id="booking-date-tbody">
@@ -175,14 +176,14 @@
         const bookingDateColumnIndexProcessed = mergedData[0].indexOf('BOOKING DATE');
         const reportedDateColumnIndexProcessed = mergedData[0].indexOf('REPORTED DATE');
         const regionColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'REG-1');
-const serviceColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Service Type');
-const segmenColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Customer Segment');
-const customertypeColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Customer Only');
-const classificationtypeColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Classification');
-const customersegmentsColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Valid Ticket Group');
-const symptomColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'PDA');
-const zColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'NOT GUARANTEE');
-const statusColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'TIKET AKTIF');
+        const serviceColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Service Type');
+        const segmenColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Customer Segment');
+        const customertypeColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Customer Only');
+        const classificationtypeColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Classification');
+        const customersegmentsColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Valid Ticket Group');
+        const symptomColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'PDA');
+        const zColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'NOT GUARANTEE');
+        const statusColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'TIKET AKTIF');
 
 // Log the results
 // Log the indexes to check if they are found
@@ -457,26 +458,51 @@ console.log('Status Column Index:', statusColumnIndexProcessed);
 
         // Add new function for PDA check with console logging
         function checkPDAInSymptom(symptom) {
-            console.log('=== PDA Check Start ===');
-            console.log('Input SYMPTOM:', symptom);
-            
-            if (!symptom) {
-                console.log('SYMPTOM is empty/null/undefined');
-                console.log('Returning: false');
-                console.log('=== PDA Check End ===');
-                return false;
-            }
-            
-            const upperSymptom = symptom.toUpperCase();
-            console.log('Uppercase SYMPTOM:', upperSymptom);
-            
-            const hasPDA = upperSymptom.includes('PDA');
-            console.log('Contains PDA:', hasPDA);
-            console.log('Returning:', !hasPDA);
-            console.log('=== PDA Check End ===');
-            
-            return !hasPDA;
-        }
+    console.log('=== PDA Check Start ===');
+    console.log('Input SYMPTOM:', symptom);
+    
+    // Handle undefined, null, or empty string cases
+    if (symptom === undefined || symptom === null || symptom === '') {
+        console.log('SYMPTOM is empty/null/undefined');
+        console.log('Returning: false');
+        console.log('=== PDA Check End ===');
+        return false;
+    }
+    
+    // Convert to string if not already (handles number inputs too)
+    const symptomStr = String(symptom);
+    const upperSymptom = symptomStr.trim().toUpperCase();
+    console.log('Normalized SYMPTOM:', upperSymptom);
+    
+    const hasPDA = upperSymptom.includes('PDA');
+    console.log('Contains PDA:', hasPDA);
+    
+    // Return true if PDA is NOT found (inverse of hasPDA)
+    const result = !hasPDA;
+    console.log('Final result:', result);
+    console.log('=== PDA Check End ===');
+    
+    return result;
+}
+
+// Helper function to validate symptom data before processing
+function validateSymptomColumnData(data, symptomColumnIndex) {
+    console.log('=== Validating Symptom Column ===');
+    console.log('Symptom Column Index:', symptomColumnIndex);
+    
+    if (symptomColumnIndex === -1) {
+        console.error('Symptom column not found in data');
+        return false;
+    }
+    
+    // Check if we have valid data to process
+    if (!Array.isArray(data) || data.length === 0) {
+        console.error('Invalid or empty data array');
+        return false;
+    }
+    
+    return true;
+}
 
         function isGuaranteeStatus(status) {
             if (!status || status === "" || status === undefined || status === null) {
@@ -562,6 +588,26 @@ console.log('Status Column Index:', statusColumnIndexProcessed);
         return isValid ? 'True' : 'False'; // Return 'True' jika valid, 'False' jika tidak
     }
 
+    function isValidAssurance(row) {
+    const reg1 = isRegionOne(row[regionColumnIndexProcessed]);
+    const serviceType = isValidServiceType(row[serviceColumnIndexProcessed]);
+    const customerSegmen = isValidSegmen(row[segmenColumnIndexProcessed]);
+    const customerOnly = isValidCustomerType(row[customertypeColumnIndexProcessed]);
+    const classification = isValidClassificationType(row[classificationtypeColumnIndexProcessed]);
+    const validTicketGroup = isValidCustomerSegment(row[customersegmentsColumnIndexProcessed]);
+    const pda = checkPDAInSymptom(row[symptomColumnIndexProcessed]);
+    const notGuarantee = !isGuaranteeStatus(row[zColumnIndexProcessed]);
+
+    return reg1 && 
+           serviceType && 
+           customerSegmen && 
+           customerOnly && 
+           classification && 
+           validTicketGroup && 
+           pda && 
+           notGuarantee;
+    }
+
     mergedData.forEach((row, index) => {
         console.log(`\n=== Processing Row ${index + 1} ===`);
         
@@ -601,7 +647,9 @@ console.log('Status Column Index:', statusColumnIndexProcessed);
             { value: ticketAktif ? 'True' : 'False' },
             { value: isGuaranteeStatus(guaranteeStatus) ? 'True' : 'False' },
             { value: isValidStatusType(status) ? 'True' : 'False' },
-            { value: isValidTicket(row) ? 'True' : 'False' }
+            { value: isValidTicket(row) ? 'True' : 'False' },
+            { value: isValidAssurance(row) ? 'True' : 'False' },
+            
         ];
 
         console.log('Generated cell values:', cells.map(cell => cell.value));
