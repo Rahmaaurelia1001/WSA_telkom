@@ -9,18 +9,18 @@
 <body class="bg-gray-100 relative min-h-screen">
 
     <div class="container mx-auto p-6">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-semibold text-gray-700">Users List</h2>
-        </div>
+        <!-- Judul Ditengah dan Bold -->
+        <h2 class="text-2xl font-bold text-center text-gray-700 mb-6">Users List</h2>
 
         <!-- Users Table -->
         <div class="overflow-x-auto bg-white shadow-md rounded-lg">
             <table class="min-w-full border-collapse border border-gray-300">
-                <thead class="bg-gray-200">
+                <!-- Kepala Tabel Warna Merah -->
+                <thead class="bg-red-500">
                     <tr>
-                        <th class="py-3 px-6 text-left text-gray-700 font-semibold border-b">Name</th>
-                        <th class="py-3 px-6 text-left text-gray-700 font-semibold border-b">Email</th>
-                        <th class="py-3 px-6 text-left text-gray-700 font-semibold border-b">Actions</th>
+                        <th class="py-3 px-6 text-left text-white font-semibold border-b">Name</th>
+                        <th class="py-3 px-6 text-left text-white font-semibold border-b">Email</th>
+                        <th class="py-3 px-6 text-left text-white font-semibold border-b">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
