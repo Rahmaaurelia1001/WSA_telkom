@@ -6,59 +6,83 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .dropdown-content {
+            display: none;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100">
 
-    <div class="container mx-auto p-6">
-        <!-- Dashboard Header -->
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-semibold">Admin Dashboard</h2>
-            <a href="{{ route('logout') }}" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Logout</a>
+    <!-- Header -->
+    <div class="bg-white shadow-md flex justify-between items-center px-6 py-3">
+        <img src="/images/logo-telkom.png" alt="Telkom Indonesia" class="h-10">
+
+        <div class="relative dropdown">
+            <!-- Profile Section -->
+            <div class="flex items-center space-x-2 cursor-pointer">
+                <div class="bg-gray-300 rounded-full p-2">
+                    <img src="/images/user.png" alt="User" class="w-6 h-6 text-gray-600">
+                </div>
+                <span class="text-gray-600 font-medium">{{ auth()->user()->name }}</span>
+                <svg class="w-5 h-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </div>
+
+            <!-- Dropdown Menu -->
+            <div class="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg dropdown-content">
+                <a href="{{ route('profile') }}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">View Profile</a>
+                <form action="{{ route('logout') }}" method="POST" class="block">
+                    @csrf
+                    <button type="submit" class="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100">
+                        Logout
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex flex-col items-center justify-center h-screen space-y-4">
+        <div class="flex items-center space-x-10" style="margin-top: -100px;">
+            <h1 class="text-3xl font-bold mt-6 mb-6">
+                Welcome to <br>
+                <span class="text-red-600 text-4xl">Admin Dashboard</span>
+            </h1>
+            <img src="/images/logo-telkom.png" alt="Telkom Indonesia" style="width: 200px; margin-top: -45px;">
         </div>
 
-        <!-- Create New User Form -->
-        <div class="max-w-lg mx-auto bg-white p-8 rounded-lg shadow-md">
-            <h2 class="text-2xl font-semibold mb-4 text-center">Create New User</h2>
-
-            <form method="POST" action="{{ route('admin.users.store') }}">
-                @csrf
-
-                <!-- Name Field -->
-                <div class="mb-4">
-                    <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
-                    <input type="text" class="w-full p-2 mt-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 @error('name') border-red-500 @enderror"
-                           name="name" value="{{ old('name') }}" required>
-                    @error('name')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
+        <!-- Menu Buttons -->
+        <div class="flex space-x-6">
+            <!-- Create User Menu -->
+            <a href="{{ route('admin.users.create') }}">
+                <div class="border-4 border-blue-600 rounded-lg p-6 bg-white shadow-md flex flex-col items-center space-y-2 cursor-pointer">
+                    <img src="/images/user-plus.png" alt="Create User" class="h-20">
+                    <span class="text-blue-600 text-lg">Create User</span>
                 </div>
+            </a>
 
-                <!-- Email Field -->
-                <div class="mb-4">
-                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                    <input type="email" class="w-full p-2 mt-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 @error('email') border-red-500 @enderror"
-                           name="email" value="{{ old('email') }}" required>
-                    @error('email')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
+            <!-- Add Data Menu -->
+            <a href="{{ route('admin.data.add') }}">
+                <div class="border-4 border-green-600 rounded-lg p-6 bg-white shadow-md flex flex-col items-center space-y-2 cursor-pointer">
+                    <img src="/images/data-add.png" alt="Add Data" class="h-20">
+                    <span class="text-green-600 text-lg">Add Data</span>
                 </div>
+            </a>
 
-                <!-- Password Field -->
-                <div class="mb-4">
-                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" class="w-full p-2 mt-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 @error('password') border-red-500 @enderror"
-                           name="password" required>
-                    @error('password')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
+            <!-- User List Menu -->
+            <a href="{{ route('admin.users.list') }}">
+                <div class="border-4 border-red-600 rounded-lg p-6 bg-white shadow-md flex flex-col items-center space-y-2 cursor-pointer">
+                    <img src="/images/user-list.png" alt="User List" class="h-20">
+                    <span class="text-red-600 text-lg">User List</span>
                 </div>
-
-                <div class="flex justify-center">
-                    <button type="submit"
-                            class="px-6 py-2 bg-blue-500 text-white rounded-lg focus:outline-none hover:bg-blue-600">Create User</button>
-                </div>
-            </form>
+            </a>
         </div>
     </div>
 

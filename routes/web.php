@@ -39,6 +39,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+        
     // });    
 
     // Rute untuk admin user management
@@ -46,9 +47,14 @@ Route::middleware(['auth'])->group(function () {
     //     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
         
     //     // Rute untuk admin user management
-        Route::get('/users', [UserManagementController::class, 'index'])->name('admin.users.index');
+        Route::get('/users', [UserManagementController::class, 'list'])->name('admin.users.list');
         Route::get('/users/create', [UserManagementController::class, 'create'])->name('admin.users.create');
         Route::post('/users', [UserManagementController::class, 'store'])->name('admin.users.store');
         Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
+        Route::resource('admin/users', UserManagementController::class);
+        Route::get('/data/add', [UserManagementController::class, 'data'])->name('admin.data.add');
+        Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->name('admin.users.edit');
+        Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('admin.users.update');
+
     // });
 });
