@@ -62,17 +62,17 @@
         <div class="flex space-x-6">
             <!-- Create User Menu -->
             <a href="{{ route('admin.users.create') }}">
-                <div class="border-4 border-blue-600 rounded-lg p-6 bg-white shadow-md flex flex-col items-center space-y-2 cursor-pointer">
-                    <img src="/images/user-plus.png" alt="Create User" class="h-20">
-                    <span class="text-blue-600 text-lg">Create User</span>
+                <div class="border-4 border-red-600 rounded-lg p-6 bg-white shadow-md flex flex-col items-center space-y-2 cursor-pointer">
+                    <img src="/images/add-user.png" alt="Create User" class="h-20">
+                    <span class="text-black-600 text-lg">Create User</span>
                 </div>
             </a>
 
             <!-- Add Data Menu -->
             <a href="{{ route('admin.data.add') }}">
-                <div class="border-4 border-green-600 rounded-lg p-6 bg-white shadow-md flex flex-col items-center space-y-2 cursor-pointer">
-                    <img src="/images/data-add.png" alt="Add Data" class="h-20">
-                    <span class="text-green-600 text-lg">Add Data</span>
+                <div class="border-4 border-red-600 rounded-lg p-6 bg-white shadow-md flex flex-col items-center space-y-2 cursor-pointer">
+                    <img src="/images/add-data.png" alt="Add Data" class="h-20">
+                    <span class="text-black-600 text-lg">Add Data</span>
                 </div>
             </a>
 
@@ -80,7 +80,7 @@
             <a href="{{ route('admin.users.list') }}">
                 <div class="border-4 border-red-600 rounded-lg p-6 bg-white shadow-md flex flex-col items-center space-y-2 cursor-pointer">
                     <img src="/images/user-list.png" alt="User List" class="h-20">
-                    <span class="text-red-600 text-lg">User List</span>
+                    <span class="text-black-600 text-lg">User List</span>
                 </div>
             </a>
         </div>
