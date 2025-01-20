@@ -58,8 +58,16 @@ class FileProcessController extends Controller
             ->distinct()
             ->pluck('z')
             ->toArray();
+        
+        $closedTypes = DB::table('marking_data')
+            ->select('closed_reopen_by')
+            ->distinct()
+            ->pluck('closed_reopen_by')
+            ->whereNotNull('closed_reopen_by')
+            ->where('closed_reopen_by', '!=', '')
+            ->toArray();
             
-        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes', 'classificationTypes', 'customerSegments', 'zTypes'));
+        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes', 'classificationTypes', 'customerSegments', 'zTypes', 'closedTypes'));
     }
 
     public function process(Request $request)
@@ -182,6 +190,14 @@ class FileProcessController extends Controller
                 ->pluck('z')
                 ->toArray();
 
+            $closedTypes = DB::table('marking_data')
+                ->select('closed_reopen_by')
+                ->distinct()
+                ->pluck('closed_reopen_by')
+                ->whereNotNull('closed_reopen_by')
+                ->where('closed_reopen_by', '!=', '')
+                ->toArray();
+
             // Convert header and data to numeric arrays
             $header = array_values($header);
             $mergedData = array_map(function($row) {
@@ -196,7 +212,8 @@ class FileProcessController extends Controller
                 'customer_types' => $customerTypes,
                 'classification_types' => $classificationTypes,
                 'customer_segments' => $customerSegments,
-                'zs' => $zTypes
+                'zs' => $zTypes,
+                'closed_types' => $closedTypes
             ]);
             session()->flash('success_message', 'File berhasil digabungkan.');
 
@@ -504,6 +521,45 @@ class FileProcessController extends Controller
         } catch (\Exception $e) {
             Log::error('Error checking segmen type: ' . $e->getMessage());
             return response()->json(['error' => 'Terjadi kesalahan saat memeriksa segmen type'], 500);
+        }
+    }
+    
+    public function getclosedTypes()
+    {
+        try {
+            $closedTypes = DB::table('marking_data')
+                ->select('closed_reopen_by')
+                ->distinct()
+                ->pluck('closed_reopen_by')
+                ->whereNotNull('closed_reopen_by')
+                ->where('closed_reopen_by', '!=', '')
+                ->toArray();
+    
+            Log::info('Retrieved closed types from database:', $closedTypes);
+    
+            if (empty($closedTypes)) {
+                Log::warning('No closed type data found in marking_data table');
+            }
+            
+            return response()->json($closedTypes);
+        } catch (\Exception $e) {
+            Log::error('Error fetching closed types: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat mengambil data closed type'], 500);
+        }
+    }
+    
+    public function checkClosedType($closed)
+    {
+        try {
+            $exists = DB::table('marking_data')
+                ->where('closed_reopen_by', $closed)
+                ->exists();
+            
+            // Return inverse of exists - true if not found, false if found
+            return response()->json(['exists' => !$exists]);
+        } catch (\Exception $e) {
+            Log::error('Error checking closed type: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat memeriksa closed type'], 500);
         }
     }
 }

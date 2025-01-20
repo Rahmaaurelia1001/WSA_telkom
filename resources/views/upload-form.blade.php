@@ -137,6 +137,8 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">CLOSED</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #FFFF00; color: Black;">FILTER ASSURANCE</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #FFFF00; color: Black;" >ASSURANCE CLOSE</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #CAEDFB; color: Black;">FCR</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TTR RESOLVED dari OPEN</th>
                             </tr>
                         </thead>
                         <tbody id="booking-date-tbody">
@@ -152,6 +154,7 @@
         const mergedData = @json(session('merged_data', []));
         const header = @json(session('header', []));
         const serviceTypes = @json(session('service_types', []));
+        const closedTypes = @json(session('closed_types', []));
         const segmens = @json(session('segmens', []));
         const customerTypes = @json(session('customer_types', []));
         const classificationTypes = @json(session('classification_types', []));
@@ -170,6 +173,8 @@
         const symptomColumnIndex = header.indexOf('SYMPTOM');
         const zColumnIndex = header.indexOf('GUARANTE STATUS');
         const statusColumnIndex = header.indexOf('STATUS');
+        const closedColumnIndex = header.indexOf('CLOSED / REOPEN by');
+        const resolveDateColumnIndex = header.indexOf('RESOLVE DATE');
         const processButton = document.getElementById('process-booking-date');
         const bookingDateTable = document.getElementById('booking-date-table');
         const bookingDateTbody = document.getElementById('booking-date-tbody');
@@ -185,17 +190,17 @@
         const zColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'NOT GUARANTEE');
         const statusColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'TIKET AKTIF');
 
-// Log the results
-// Log the indexes to check if they are found
-console.log('Region Column Index:', regionColumnIndexProcessed);
-console.log('Service Column Index:', serviceColumnIndexProcessed);
-console.log('Customer Segment Column Index:', segmenColumnIndexProcessed);
-console.log('Customer Type Column Index:', customertypeColumnIndexProcessed);
-console.log('Classification Column Index:', classificationtypeColumnIndexProcessed);
-console.log('Customer Segments Column Index:', customersegmentsColumnIndexProcessed);
-console.log('Symptom Column Index:', symptomColumnIndexProcessed);
-console.log('Z Column Index:', zColumnIndexProcessed);
-console.log('Status Column Index:', statusColumnIndexProcessed);
+        // Log the results
+        // Log the indexes to check if they are found
+        console.log('Region Column Index:', regionColumnIndexProcessed);
+        console.log('Service Column Index:', serviceColumnIndexProcessed);
+        console.log('Customer Segment Column Index:', segmenColumnIndexProcessed);
+        console.log('Customer Type Column Index:', customertypeColumnIndexProcessed);
+        console.log('Classification Column Index:', classificationtypeColumnIndexProcessed);
+        console.log('Customer Segments Column Index:', customersegmentsColumnIndexProcessed);
+        console.log('Symptom Column Index:', symptomColumnIndexProcessed);
+        console.log('Z Column Index:', zColumnIndexProcessed);
+        console.log('Status Column Index:', statusColumnIndexProcessed);
 
         function populateCheckboxes() {
             const selectedColumn = columnSelect.value;
@@ -458,60 +463,59 @@ console.log('Status Column Index:', statusColumnIndexProcessed);
 
         // Add new function for PDA check with console logging
         function checkPDAInSymptom(symptom) {
-    console.log('=== PDA Check Start ===');
-    console.log('Input SYMPTOM:', symptom);
+            console.log('=== PDA Check Start ===');
+            console.log('Input SYMPTOM:', symptom);
     
-    // Handle undefined, null, or empty string cases
-    if (symptom === undefined || symptom === null || symptom === '') {
-        console.log('SYMPTOM is empty/null/undefined');
-        console.log('Returning: false');
-        console.log('=== PDA Check End ===');
-        return false;
-    }
-    
-    // Convert to string if not already (handles number inputs too)
-    const symptomStr = String(symptom);
-    const upperSymptom = symptomStr.trim().toUpperCase();
-    console.log('Normalized SYMPTOM:', upperSymptom);
-    
-    const hasPDA = upperSymptom.includes('PDA');
-    console.log('Contains PDA:', hasPDA);
-    
-    // Return true if PDA is NOT found (inverse of hasPDA)
-    const result = !hasPDA;
-    console.log('Final result:', result);
-    console.log('=== PDA Check End ===');
-    
-    return result;
-}
-
-// Helper function to validate symptom data before processing
-function validateSymptomColumnData(data, symptomColumnIndex) {
-    console.log('=== Validating Symptom Column ===');
-    console.log('Symptom Column Index:', symptomColumnIndex);
-    
-    if (symptomColumnIndex === -1) {
-        console.error('Symptom column not found in data');
-        return false;
-    }
-    
-    // Check if we have valid data to process
-    if (!Array.isArray(data) || data.length === 0) {
-        console.error('Invalid or empty data array');
-        return false;
-    }
-    
-    return true;
-}
-
-        function isGuaranteeStatus(status) {
-            if (!status || status === "" || status === undefined || status === null) {
+            // Handle undefined, null, or empty string cases
+            if (symptom === undefined || symptom === null || symptom === '') {
+                console.log('SYMPTOM is empty/null/undefined');
+                console.log('Returning: false');
+                console.log('=== PDA Check End ===');
                 return false;
             }
+    
+            // Convert to string if not already (handles number inputs too)
+            const symptomStr = String(symptom);
+            const upperSymptom = symptomStr.trim().toUpperCase();
+            console.log('Normalized SYMPTOM:', upperSymptom);
+            
+            const hasPDA = upperSymptom.includes('PDA');
+            console.log('Contains PDA:', hasPDA);
+            
+            // Return true if PDA is NOT found (inverse of hasPDA)
+            const result = !hasPDA;
+            console.log('Final result:', result);
+            console.log('=== PDA Check End ===');
+            
+            return result;
+    }
 
-            // Cek apakah status adalah "GUARANTEE"
-            return status.trim().toUpperCase() === 'GUARANTEE';
+    // Helper function to validate symptom data before processing
+    function validateSymptomColumnData(data, symptomColumnIndex) {
+        console.log('=== Validating Symptom Column ===');
+        console.log('Symptom Column Index:', symptomColumnIndex);
+        
+        if (symptomColumnIndex === -1) {
+            console.error('Symptom column not found in data');
+            return false;
         }
+        
+        // Check if we have valid data to process
+        if (!Array.isArray(data) || data.length === 0) {
+            console.error('Invalid or empty data array');
+            return false;
+        }
+        
+        return true;
+    }
+
+    function isGuaranteeStatus(status) {
+        if (!status || status === "" || status === undefined || status === null) {
+            return false;
+        }
+
+            return status.trim().toUpperCase() === 'GUARANTEE';
+    }
 
         processButton.addEventListener('click', function () {
             console.log('=== Process Button Clicked ===');
@@ -526,15 +530,6 @@ function validateSymptomColumnData(data, symptomColumnIndex) {
             bookingDateTbody.innerHTML = '';
             console.log('Cleared table body');
 
-            // Update the table header to include PDA column
-            // const thead = document.querySelector('#booking-date-table thead tr');
-            // if (!thead.querySelector('th:nth-last-child(1)').textContent.includes('PDA')) {
-            //     console.log('Adding PDA column header');
-            //     const pdaTh = document.createElement('th');
-            //     pdaTh.className = 'border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700';
-            //     pdaTh.textContent = 'PDA';
-            //     thead.appendChild(pdaTh);
-            // }
 
     console.log('Processing', mergedData.length, 'rows of data');
 
@@ -546,6 +541,37 @@ function validateSymptomColumnData(data, symptomColumnIndex) {
 
     function determineTicketStatus(status) {
     const isClosed = isValidStatusType(status);
+    }
+
+    function isValidClosedType(closed) {
+        // Detailed logging
+        console.log('Input closed type:', closed);
+        console.log('Available closed types:', closedTypes);
+        
+        // Input validation
+        // if (!closed || closed === "" || closed === undefined || closed === null) {
+        //     console.log('Invalid closed input');
+        //     return false;
+        // }
+        
+        // Normalize the input
+        const normalizedClosed = closed.toString().trim().toLowerCase();
+        console.log('Normalized closed type:', normalizedClosed);
+        
+        // Check each type with logging - return true if the value is NOT in the database
+        const result = !closedTypes.some(type => {
+            if (!type) {
+                console.log('Invalid type in closed array:', type);
+                return false;
+            }
+            const normalizedType = type.toString().trim().toLowerCase();
+            const matches = normalizedType === normalizedClosed;
+            console.log(`Comparing: "${normalizedType}" with "${normalizedClosed}". Match: ${matches}`);
+            return matches;
+        });
+        
+        console.log('Final result for closed type validation:', result);
+        return result;
     }
 
     function isValidTicket(row) {
@@ -608,6 +634,33 @@ function validateSymptomColumnData(data, symptomColumnIndex) {
            notGuarantee;
     }
 
+    function calculateResolutionTime(resolveDate, reportedDate) {
+        if (!resolveDate || resolveDate === "" || resolveDate === undefined || resolveDate === null) {
+            return 0;
+        }
+
+        try {
+            const resolve = dayjs(resolveDate);
+            const reported = dayjs(reportedDate);
+            
+            if (!resolve.isValid() || !reported.isValid()) {
+                return 0;
+            }
+
+            // Calculate difference in hours
+            const diffInHours = resolve.diff(reported, 'hour', true);
+            
+            if (diffInHours < 0) {
+                return 0;
+            }
+
+            return diffInHours.toFixed(2);
+        } catch (error) {
+            console.error('Error calculating resolution time:', error);
+            return 0;
+        }
+    }
+
     mergedData.forEach((row, index) => {
         console.log(`\n=== Processing Row ${index + 1} ===`);
         
@@ -623,6 +676,8 @@ function validateSymptomColumnData(data, symptomColumnIndex) {
         const z = row[zColumnIndex];
         const guaranteeStatus = row[zColumnIndex];
         const status = row[statusColumnIndex]; 
+        const closed = row[closedColumnIndex];
+        const resolveDate = row[resolveDateColumnIndex]; 
 
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50';
@@ -649,6 +704,8 @@ function validateSymptomColumnData(data, symptomColumnIndex) {
             { value: isValidStatusType(status) ? 'True' : 'False' },
             { value: isValidTicket(row) ? 'True' : 'False' },
             { value: isValidAssurance(row) ? 'True' : 'False' },
+            { value: isValidClosedType(closed) ? 'True' : 'False'},
+            { value: calculateResolutionTime(resolveDate, reportedDate) + ' jam' }
             
         ];
 
