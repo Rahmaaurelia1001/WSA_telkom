@@ -528,12 +528,12 @@ class FileProcessController extends Controller
     {
         try {
             $closedTypes = DB::table('marking_data')
-                ->select('closed_reopen_by')
-                ->distinct()
-                ->pluck('closed_reopen_by')
-                ->whereNotNull('closed_reopen_by')
-                ->where('closed_reopen_by', '!=', '')
-                ->toArray();
+            ->select('closed_reopen_by')
+            ->distinct()
+            ->pluck('closed_reopen_by')
+            ->whereNotNull('closed_reopen_by')
+            ->where('closed_reopen_by', '!=', '')
+            ->toArray();
     
             Log::info('Retrieved closed types from database:', $closedTypes);
     

@@ -143,6 +143,8 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TTR RESOLVED dari MANJA</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">CLOSED HI</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">IS MANJA</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">IS NOT GAMAS</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">IS DUPLICATE</th>
                             </tr>
                         </thead>
                         <tbody id="booking-date-tbody">
@@ -166,8 +168,10 @@
         const zTypes = @json(session('zs', []));
         const columnSelect = document.getElementById('column-select');
         const checkboxContainer = document.getElementById('checkbox-container');
+        const incidentColumnIndex = header.indexOf('INCIDENT');
         const bookingDateColumnIndex = header.indexOf('BOOKING DATE');
         const reportedDateColumnIndex = header.indexOf('REPORTED DATE');
+        const TiketColumnIndex = header.indexOf('TICKET ID GAMAS');
         const regionColumnIndex = header.indexOf('REGION');
         const serviceColumnIndex = header.indexOf('SERVICE TYPE');
         const segmenColumnIndex = header.indexOf('CUSTOMER SEGMENT');
@@ -548,15 +552,15 @@
     }
 
     function isValidClosedType(closed) {
-        // Detailed logging
+    // Detailed logging
         console.log('Input closed type:', closed);
         console.log('Available closed types:', closedTypes);
         
-        // Input validation
-        // if (!closed || closed === "" || closed === undefined || closed === null) {
-        //     console.log('Invalid closed input');
-        //     return false;
-        // }
+        // Handle null input (treat it as valid, or decide how to handle it)
+        if (closed === null) {
+            console.log('Input is null, handling accordingly');
+            return true;  // or return false if null should be invalid
+        }
         
         // Normalize the input
         const normalizedClosed = closed.toString().trim().toLowerCase();
@@ -564,10 +568,11 @@
         
         // Check each type with logging - return true if the value is NOT in the database
         const result = !closedTypes.some(type => {
-            if (!type) {
-                console.log('Invalid type in closed array:', type);
+            if (type == null) {
+                console.log('Invalid type in closed array: null or undefined');
                 return false;
             }
+            
             const normalizedType = type.toString().trim().toLowerCase();
             const matches = normalizedType === normalizedClosed;
             console.log(`Comparing: "${normalizedType}" with "${normalizedClosed}". Match: ${matches}`);
@@ -578,91 +583,92 @@
         return result;
     }
 
+
     function isValidTicket(row) {
     // Ambil nilai dari row menggunakan indeks yang sudah didefinisikan
-    const reg1 = isRegionOne(row[regionColumnIndexProcessed]);  // Pastikan regionColumnIndexProcessed sudah benar
-    const serviceType = isValidServiceType(row[serviceColumnIndexProcessed]);
-    const customerSegmen = isValidSegmen(row[segmenColumnIndexProcessed]);
-    const customerOnly = isValidCustomerType(row[customertypeColumnIndexProcessed]);
-    const classification = isValidClassificationType(row[classificationtypeColumnIndexProcessed]);
-    const validTicketGroup = isValidCustomerSegment(row[customersegmentsColumnIndexProcessed]);
-    const pda = checkPDAInSymptom(row[symptomColumnIndexProcessed]);
-    const notGuarantee = !isGuaranteeStatus(row[zColumnIndexProcessed]);
-    const tiketAktif = row[statusColumnIndexProcessed] !== 'CLOSED'; // Tiket aktif jika status bukan CLOSED
+        const reg1 = isRegionOne(row[regionColumnIndexProcessed]);  // Pastikan regionColumnIndexProcessed sudah benar
+        const serviceType = isValidServiceType(row[serviceColumnIndexProcessed]);
+        const customerSegmen = isValidSegmen(row[segmenColumnIndexProcessed]);
+        const customerOnly = isValidCustomerType(row[customertypeColumnIndexProcessed]);
+        const classification = isValidClassificationType(row[classificationtypeColumnIndexProcessed]);
+        const validTicketGroup = isValidCustomerSegment(row[customersegmentsColumnIndexProcessed]);
+        const pda = checkPDAInSymptom(row[symptomColumnIndexProcessed]);
+        const notGuarantee = !isGuaranteeStatus(row[zColumnIndexProcessed]);
+        const tiketAktif = row[statusColumnIndexProcessed] !== 'CLOSED'; // Tiket aktif jika status bukan CLOSED
 
-    // Log data untuk memastikan nilai yang diambil
-        console.log('Checking row:', {
-            reg1,
-            serviceType,
-            customerSegmen,
-            customerOnly,
-            classification,
-            validTicketGroup,
-            pda,
-            notGuarantee,
-            tiketAktif
-        });
+        // Log data untuk memastikan nilai yang diambil
+            console.log('Checking row:', {
+                reg1,
+                serviceType,
+                customerSegmen,
+                customerOnly,
+                classification,
+                validTicketGroup,
+                pda,
+                notGuarantee,
+                tiketAktif
+            });
 
-        // Periksa apakah semua kondisi terpenuhi
-        const isValid = reg1 &&
-                        serviceType &&
-                        customerSegmen &&
-                        customerOnly &&
-                        classification &&
-                        validTicketGroup &&
-                        pda &&
-                        notGuarantee &&
-                        tiketAktif;
+            // Periksa apakah semua kondisi terpenuhi
+            const isValid = reg1 &&
+                            serviceType &&
+                            customerSegmen &&
+                            customerOnly &&
+                            classification &&
+                            validTicketGroup &&
+                            pda &&
+                            notGuarantee &&
+                            tiketAktif;
 
-        console.log('Is valid ticket:', isValid);
-        return isValid ? 'True' : 'False'; // Return 'True' jika valid, 'False' jika tidak
+            console.log('Is valid ticket:', isValid);
+            return isValid ? 'True' : 'False'; // Return 'True' jika valid, 'False' jika tidak
     }
 
     function isValidAssurance(row) {
-    const reg1 = isRegionOne(row[regionColumnIndexProcessed]);
-    const serviceType = isValidServiceType(row[serviceColumnIndexProcessed]);
-    const customerSegmen = isValidSegmen(row[segmenColumnIndexProcessed]);
-    const customerOnly = isValidCustomerType(row[customertypeColumnIndexProcessed]);
-    const classification = isValidClassificationType(row[classificationtypeColumnIndexProcessed]);
-    const validTicketGroup = isValidCustomerSegment(row[customersegmentsColumnIndexProcessed]);
-    const pda = checkPDAInSymptom(row[symptomColumnIndexProcessed]);
-    const notGuarantee = !isGuaranteeStatus(row[zColumnIndexProcessed]);
+        const reg1 = isRegionOne(row[regionColumnIndexProcessed]);
+        const serviceType = isValidServiceType(row[serviceColumnIndexProcessed]);
+        const customerSegmen = isValidSegmen(row[segmenColumnIndexProcessed]);
+        const customerOnly = isValidCustomerType(row[customertypeColumnIndexProcessed]);
+        const classification = isValidClassificationType(row[classificationtypeColumnIndexProcessed]);
+        const validTicketGroup = isValidCustomerSegment(row[customersegmentsColumnIndexProcessed]);
+        const pda = checkPDAInSymptom(row[symptomColumnIndexProcessed]);
+        const notGuarantee = !isGuaranteeStatus(row[zColumnIndexProcessed]);
 
-    return reg1 && 
-           serviceType && 
-           customerSegmen && 
-           customerOnly && 
-           classification && 
-           validTicketGroup && 
-           pda && 
-           notGuarantee;
-    }
-
-    function calculateResolutionTime(resolveDate, reportedDate) {
-        if (!resolveDate || resolveDate === "" || resolveDate === undefined || resolveDate === null) {
-            return 0;
+        return reg1 && 
+            serviceType && 
+            customerSegmen && 
+            customerOnly && 
+            classification && 
+            validTicketGroup && 
+            pda && 
+            notGuarantee;
         }
 
-        try {
-            const resolve = dayjs(resolveDate);
-            const reported = dayjs(reportedDate);
-            
-            if (!resolve.isValid() || !reported.isValid()) {
+        function calculateResolutionTime(resolveDate, reportedDate) {
+            if (!resolveDate || resolveDate === "" || resolveDate === undefined || resolveDate === null) {
                 return 0;
             }
 
-            // Calculate difference in hours
-            const diffInHours = resolve.diff(reported, 'hour', true);
-            
-            if (diffInHours < 0) {
+            try {
+                const resolve = dayjs(resolveDate);
+                const reported = dayjs(reportedDate);
+                
+                if (!resolve.isValid() || !reported.isValid()) {
+                    return 0;
+                }
+
+                // Calculate difference in hours
+                const diffInHours = resolve.diff(reported, 'hour', true);
+                
+                if (diffInHours < 0) {
+                    return 0;
+                }
+
+                return diffInHours.toFixed(2);
+            } catch (error) {
+                console.error('Error calculating resolution time:', error);
                 return 0;
             }
-
-            return diffInHours.toFixed(2);
-        } catch (error) {
-            console.error('Error calculating resolution time:', error);
-            return 0;
-        }
     }
 
     function processBookingDate(bookingDate) {
@@ -744,43 +750,63 @@
     }
 
     function calculateTimeFromResolveToBooking(resolveDate, processedBookingDate) {
-        console.log('Input for time calculation:', {
-            resolveDate,
-            processedBookingDate
-        });
+    console.log('Input for time calculation:', {
+        resolveDate,
+        processedBookingDate
+    });
 
-        try {
-            // Handle case when resolveDate exists but processedBookingDate is empty
-            if (resolveDate && (!processedBookingDate || processedBookingDate.length === 0)) {
-                // Convert resolveDate to Excel days since 1900-01-01
-                const excelEpoch = new Date('1900-01-01T00:00:00Z');
-                const resolveDateTime = new Date(resolveDate);
-                const daysSinceExcelEpoch = (resolveDateTime - excelEpoch) / (1000 * 60 * 60 * 24);
-                const hoursValue = daysSinceExcelEpoch * 24;
-                
-                console.log('Excel-style calculation:', {
-                    daysSinceExcelEpoch,
-                    hoursValue
-                });
-                
-                return hoursValue.toFixed(2);
-            }
-
-            // Normal calculation when both dates exist
-            const resolveValue = resolveDate && resolveDate.length > 0 ? 
-                new Date(resolveDate).getTime() : 0;
-            const bookingValue = processedBookingDate && processedBookingDate.length > 0 ? 
-                new Date(processedBookingDate).getTime() : 0;
-
-            const diffInMs = resolveValue - bookingValue;
-            const diffInHours = diffInMs / (1000 * 60 * 60);
-
-            return diffInHours.toFixed(2);
-        } catch (error) {
-            console.error('Error calculating time difference:', error);
-            return 0;
+    try {
+        function getExcelSerialDate(jsDate) {
+            // Excel epoch starts on December 31, 1899
+            const excelEpoch = new Date(1899, 11, 31);
+            
+            // Get the difference in milliseconds
+            const diff = jsDate - excelEpoch;
+            
+            // Convert to days
+            const days = diff / (24 * 60 * 60 * 1000);
+            
+            // Add 1 to match Excel's system
+            // Excel considers January 1, 1900 as day 1, not 0
+            return days + 1;
         }
+
+        // Kasus ketika resolveDate kosong
+        if (!resolveDate || resolveDate.length === 0) {
+            if (processedBookingDate && processedBookingDate.length > 0) {
+                const bookingDateTime = new Date(processedBookingDate);
+                const excelDate = getExcelSerialDate(bookingDateTime);
+                
+                // Konversi ke jam (negatif karena resolveDate kosong)
+                const hours = -excelDate * 24;
+                
+                // Handle fractional part precisely
+                return hours.toFixed(2);
+            }
+            return "0.00";
+        }
+        
+        // Kasus ketika processedBookingDate kosong
+        if (!processedBookingDate || processedBookingDate.length === 0) {
+            const resolveDateTime = new Date(resolveDate);
+            const excelDate = getExcelSerialDate(resolveDateTime);
+            return (excelDate * 24).toFixed(2);
+        }
+        
+        // Kasus ketika kedua tanggal ada
+        const resolveDateTime = new Date(resolveDate);
+        const bookingDateTime = new Date(processedBookingDate);
+        
+        const resolveDays = getExcelSerialDate(resolveDateTime);
+        const bookingDays = getExcelSerialDate(bookingDateTime);
+        
+        const diffInDays = resolveDays - bookingDays;
+        return (diffInDays * 24).toFixed(2);
+    } catch (error) {
+        console.error('Error calculating time difference:', error);
+        return "0.00";
     }
+}
 
     function compareDateWithToday(resolveDate) {
         console.log('Comparing dates:', {
@@ -820,6 +846,23 @@
         }
     }
 
+    function countIfUnique(data, columnIndex, valueToCheck) {
+        let count = 0;
+
+        // Loop through the data starting from row 2 (skip header)
+        for (let i = 1; i < data.length; i++) {
+            const currentValue = data[i][columnIndex];
+
+            // Check if the value matches and count its occurrences
+            if (currentValue === valueToCheck) {
+                count++;
+            }
+        }
+
+        // Return false if the value is duplicate (count > 0), else true
+        return count > 0 ? false : true;
+    }
+
     mergedData.forEach((row, index) => {
         console.log(`\n=== Processing Row ${index + 1} ===`);
         
@@ -839,6 +882,8 @@
         const resolveDate = row[resolveDateColumnIndex]; 
         const processedBookingDate = processBookingDate(bookingDate);
         const timeFromResolveToBooking = calculateTimeFromResolveToBooking(resolveDate, processedBookingDate);
+        const Tiket = row[TiketColumnIndex]; 
+        const incidentValue = row[incidentColumnIndex]; 
 
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50';
@@ -847,6 +892,10 @@
         const ticketAktif = isClosed ? false : true;
 
         const isBookingDateValid = bookingDate && bookingDate.length > 0;
+        const isTiketValid = Tiket && Tiket.length > 0;
+
+        const isUnique = countIfUnique(mergedData, incidentColumnIndex, incidentValue);
+        console.log(isUnique ? "Unique" : "Duplicate");
 
         const cells = [
             { value: bookingDate || '' },
@@ -873,7 +922,8 @@
             { value: timeFromResolveToBooking + ' jam' },
             { value: compareDateWithToday(resolveDate) },
             { value: isBookingDateValid ? 'True' : 'False' },
-            
+            { value: isTiketValid ? 'True' : 'False' },
+            { value: isUnique ? 'True' : 'False' } 
         ];
 
         console.log('Generated cell values:', cells.map(cell => cell.value));
