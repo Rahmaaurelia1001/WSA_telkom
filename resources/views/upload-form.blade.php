@@ -141,6 +141,8 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TTR RESOLVED dari OPEN</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Manja</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TTR RESOLVED dari MANJA</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">CLOSED HI</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">IS MANJA</th>
                             </tr>
                         </thead>
                         <tbody id="booking-date-tbody">
@@ -780,6 +782,44 @@
         }
     }
 
+    function compareDateWithToday(resolveDate) {
+        console.log('Comparing dates:', {
+            resolveDate,
+            today: new Date()
+        });
+
+        try {
+            // If resolveDate is empty or invalid, return 'False'
+            if (!resolveDate || resolveDate.length === 0) {
+                console.log('Empty or invalid resolve date');
+                return 'False';
+            }
+
+            // Format resolveDate to YYYYMMDD
+            const resolve = dayjs(resolveDate);
+            if (!resolve.isValid()) {
+                console.log('Invalid resolve date format');
+                return 'False';
+            }
+            const formattedResolveDate = resolve.format('YYYYMMDD');
+
+            // Format today's date to YYYYMMDD
+            const today = dayjs();
+            const formattedToday = today.format('YYYYMMDD');
+
+            console.log('Formatted dates comparison:', {
+                formattedResolveDate,
+                formattedToday
+            });
+
+            // Compare the formatted dates and return 'True' or 'False'
+            return formattedResolveDate === formattedToday ? 'True' : 'False';
+        } catch (error) {
+            console.error('Error comparing dates:', error);
+            return 'False';
+        }
+    }
+
     mergedData.forEach((row, index) => {
         console.log(`\n=== Processing Row ${index + 1} ===`);
         
@@ -805,7 +845,9 @@
 
         const isClosed = status === 'CLOSED'; // Memeriksa jika statusnya CLOSED
         const ticketAktif = isClosed ? false : true;
-        
+
+        const isBookingDateValid = bookingDate && bookingDate.length > 0;
+
         const cells = [
             { value: bookingDate || '' },
             { value: calculateTimeDifference(bookingDate) },
@@ -828,7 +870,9 @@
             { value: isValidClosedType(closed) ? 'True' : 'False'},
             { value: calculateResolutionTime(resolveDate, reportedDate) + ' jam' },
             { value: processedBookingDate },
-            { value: timeFromResolveToBooking + ' jam' }
+            { value: timeFromResolveToBooking + ' jam' },
+            { value: compareDateWithToday(resolveDate) },
+            { value: isBookingDateValid ? 'True' : 'False' },
             
         ];
 
