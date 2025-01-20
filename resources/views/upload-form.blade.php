@@ -139,6 +139,8 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #FFFF00; color: Black;" >ASSURANCE CLOSE</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #CAEDFB; color: Black;">FCR</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TTR RESOLVED dari OPEN</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Manja</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TTR RESOLVED dari MANJA</th>
                             </tr>
                         </thead>
                         <tbody id="booking-date-tbody">
@@ -661,6 +663,123 @@
         }
     }
 
+    function processBookingDate(bookingDate) {
+        if (!bookingDate || bookingDate === "" || bookingDate === undefined || bookingDate === null) {
+            return ""; // Return empty string if booking date is empty
+        }
+
+        try {
+            // Check if length is greater than 19
+            if (bookingDate.length > 19) {
+                // Take first 19 characters and try to convert to a valid date
+                const truncatedDate = bookingDate.substring(0, 19);
+                const parsedDate = dayjs(truncatedDate);
+                
+                if (parsedDate.isValid()) {
+                    return truncatedDate;
+                }
+            }
+            
+            // If length is not greater than 19 or parsing failed, return original value
+            return bookingDate;
+            
+        } catch (error) {
+            console.error('Error processing booking date:', error);
+            return bookingDate;
+        }
+    }
+
+    function calculateResolutionTime(resolveDate, reportedDate) {
+        if (!resolveDate || resolveDate === "" || resolveDate === undefined || resolveDate === null) {
+            return 0;
+        }
+
+        try {
+            const resolve = dayjs(resolveDate);
+            const reported = dayjs(reportedDate);
+            
+            if (!resolve.isValid() || !reported.isValid()) {
+                return 0;
+            }
+
+            const diffInHours = resolve.diff(reported, 'hour', true);
+            
+            if (diffInHours < 0) {
+                return 0;
+            }
+
+            return diffInHours.toFixed(2);
+        } catch (error) {
+            console.error('Error calculating resolution time:', error);
+            return 0;
+        }
+    }
+
+    function processBookingDate(bookingDate) {
+        if (!bookingDate || bookingDate === "" || bookingDate === undefined || bookingDate === null) {
+            return ""; // Return empty string if booking date is empty
+        }
+
+        try {
+            // Check if length is greater than 19
+            if (bookingDate.length > 19) {
+                // Take first 19 characters and try to convert to a valid date
+                const truncatedDate = bookingDate.substring(0, 19);
+                const parsedDate = dayjs(truncatedDate);
+                
+                if (parsedDate.isValid()) {
+                    return truncatedDate;
+                }
+            }
+            
+            // If length is not greater than 19 or parsing failed, return original value
+            return bookingDate;
+            
+        } catch (error) {
+            console.error('Error processing booking date:', error);
+            return bookingDate;
+        }
+    }
+
+    function calculateTimeFromResolveToBooking(resolveDate, processedBookingDate) {
+        console.log('Input for time calculation:', {
+            resolveDate,
+            processedBookingDate
+        });
+
+        try {
+            // Handle case when resolveDate exists but processedBookingDate is empty
+            if (resolveDate && (!processedBookingDate || processedBookingDate.length === 0)) {
+                // Convert resolveDate to Excel days since 1900-01-01
+                const excelEpoch = new Date('1900-01-01T00:00:00Z');
+                const resolveDateTime = new Date(resolveDate);
+                const daysSinceExcelEpoch = (resolveDateTime - excelEpoch) / (1000 * 60 * 60 * 24);
+                const hoursValue = daysSinceExcelEpoch * 24;
+                
+                console.log('Excel-style calculation:', {
+                    daysSinceExcelEpoch,
+                    hoursValue
+                });
+                
+                return hoursValue.toFixed(2);
+            }
+
+            // Normal calculation when both dates exist
+            const resolveValue = resolveDate && resolveDate.length > 0 ? 
+                new Date(resolveDate).getTime() : 0;
+            const bookingValue = processedBookingDate && processedBookingDate.length > 0 ? 
+                new Date(processedBookingDate).getTime() : 0;
+
+            const diffInMs = resolveValue - bookingValue;
+            const diffInHours = diffInMs / (1000 * 60 * 60);
+
+            return diffInHours.toFixed(2);
+        } catch (error) {
+            console.error('Error calculating time difference:', error);
+            return 0;
+        }
+    }
+
     mergedData.forEach((row, index) => {
         console.log(`\n=== Processing Row ${index + 1} ===`);
         
@@ -678,6 +797,8 @@
         const status = row[statusColumnIndex]; 
         const closed = row[closedColumnIndex];
         const resolveDate = row[resolveDateColumnIndex]; 
+        const processedBookingDate = processBookingDate(bookingDate);
+        const timeFromResolveToBooking = calculateTimeFromResolveToBooking(resolveDate, processedBookingDate);
 
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50';
@@ -705,7 +826,9 @@
             { value: isValidTicket(row) ? 'True' : 'False' },
             { value: isValidAssurance(row) ? 'True' : 'False' },
             { value: isValidClosedType(closed) ? 'True' : 'False'},
-            { value: calculateResolutionTime(resolveDate, reportedDate) + ' jam' }
+            { value: calculateResolutionTime(resolveDate, reportedDate) + ' jam' },
+            { value: processedBookingDate },
+            { value: timeFromResolveToBooking + ' jam' }
             
         ];
 
