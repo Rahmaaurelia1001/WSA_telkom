@@ -139,6 +139,10 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #FFFF00; color: Black;" >ASSURANCE CLOSE</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">HVC DIAMOND</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">GRUP DIAMOND</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">HVC PLATINUM</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">GRUP PLATINUM</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">NON HVC</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">GRUP NON HVC</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #CAEDFB; color: Black;">FCR</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TTR RESOLVED dari OPEN</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Manja</th>
@@ -170,7 +174,12 @@
         const zTypes = @json(session('zs', []));
         const maxValues = @json($maxValues);
         const idValues = @json($idValues);
+        const maxValues2 = @json($maxValues2);
+        const idValues2 = @json($idValues2);
+        const maxValues3 = @json($maxValues3);
+        const idValues3 = @json($idValues3);
         const secondCustomerSegment = @json($secondCustomerSegment);
+        const thirdCustomerSegment = @json($thirdCustomerSegment);
         const columnSelect = document.getElementById('column-select');
         const checkboxContainer = document.getElementById('checkbox-container');
         const incidentColumnIndex = header.indexOf('INCIDENT');
@@ -878,8 +887,54 @@
             return idValues[1];
         } else if (timeDifference <= maxValues[2]) {
             return idValues[2];
-        } else {
+        } 
+        else {
             return idValues[3];
+        }
+    }
+
+    function getMarkingPlatinumCategory(timeDifferenceStr) {
+        // Remove "jam" from the string and convert to number
+        const timeDifference = parseFloat(timeDifferenceStr.replace(' jam', ''));
+        
+        // Apply the formula logic
+        if (timeDifference <= maxValues2[0]) {
+            return idValues2[0];
+        } else if (timeDifference <= maxValues2[1]) {
+            return idValues2[1];
+        } else if (timeDifference <= maxValues2[2]) {
+            return idValues2[2];
+        } else if (timeDifference <= maxValues2[3]) {
+            return idValues2[3];
+        }
+        else {
+            return idValues2[4];
+        }
+    }
+
+    function getMarkingNonCategory(timeDifferenceStr) {
+        // Remove "jam" from the string and convert to number
+        const timeDifference = parseFloat(timeDifferenceStr.replace(' jam', ''));
+        
+        // Apply the formula logic
+        if (timeDifference <= maxValues3[0]) {
+            return idValues3[0];
+        } else if (timeDifference <= maxValues3[1]) {
+            return idValues3[1];
+        } else if (timeDifference <= maxValues3[2]) {
+            return idValues3[2];
+        } else if (timeDifference <= maxValues3[3]) {
+            return idValues3[3];
+        } else if (timeDifference <= maxValues3[4]) {
+            return idValues3[4];
+        } else if (timeDifference <= maxValues3[5]) {
+            return idValues3[5];
+        }
+        else if (timeDifference <= maxValues3[6]) {
+            return idValues3[6];
+        }
+        else {
+            return idValues3[7];
         }
     }
 
@@ -893,6 +948,13 @@
         
         // Return true if searchStr is found in valueStr
         return valueStr.indexOf(searchStr) !== -1;
+    }
+
+    function isBothSegmentsFalse(row, secondCustomerSegment, thirdCustomerSegment) 
+    {
+        const secondSegmentMatch = searchTextInValue(secondCustomerSegment.customer_segment, row[customertypeColumnIndex]);
+        const thirdSegmentMatch = searchTextInValue(thirdCustomerSegment.customer_segment, row[customertypeColumnIndex]);
+        return !secondSegmentMatch && !thirdSegmentMatch;
     }
 
 
@@ -951,6 +1013,10 @@
             { value: isValidAssurance(row) ? 'True' : 'False' },
             { value: searchTextInValue(secondCustomerSegment.customer_segment, row[customertypeColumnIndex]) ? 'True' : 'False' },
             { value: getMarkingDiamondCategory(calculateTimeDifference(reportedDate)) },
+            { value: searchTextInValue(thirdCustomerSegment.customer_segment, row[customertypeColumnIndex]) ? 'True' : 'False' },
+            { value: getMarkingPlatinumCategory(calculateTimeDifference(reportedDate)) },
+            { value: isBothSegmentsFalse(row, secondCustomerSegment, thirdCustomerSegment) ? 'True' : 'False' },
+            { value: getMarkingNonCategory(calculateTimeDifference(reportedDate)) },
             { value: isValidClosedType(closed) ? 'True' : 'False'},
             { value: calculateResolutionTime(resolveDate, reportedDate) + ' jam' },
             { value: processedBookingDate },
@@ -975,8 +1041,6 @@
     });
 
     bookingDateTable.classList.remove('hidden');
-    console.log('Table visibility updated');
-    console.log('=== Process Complete ===');
 });
 
         columnSelect.addEventListener('change', populateCheckboxes);

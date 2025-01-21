@@ -26,6 +26,22 @@ class FileProcessController extends Controller
         
         $maxValues = $markingDiamond->pluck('max')->toArray();
         $idValues = $markingDiamond->pluck('id')->toArray();
+
+        $markingPlatinum = DB::table('marking_platinum')
+            ->select('id', 'max')
+            ->orderBy('max', 'asc')
+            ->get();
+
+        $maxValues2 = $markingPlatinum->pluck('max')->toArray();
+        $idValues2 = $markingPlatinum->pluck('id')->toArray();
+
+        $markingnNon = DB::table('marking_36_jam_nonhvc')
+            ->select('id', 'max')
+            ->orderBy('max', 'asc')
+            ->get();
+
+        $maxValues3 = $markingnNon->pluck('max')->toArray();
+        $idValues3 = $markingnNon->pluck('id')->toArray();
      
         $serviceTypes = DB::table('marking_data')
             ->select('service_type')
@@ -46,6 +62,15 @@ class FileProcessController extends Controller
             ->distinct()
             ->orderBy('customer_segment')
             ->skip(1)  // Skip the first one to get the second value
+            ->first();
+        
+        $thirdCustomerSegment = DB::table('marking_data')
+            ->select('customer_segment')
+            ->whereNotNull('customer_segment')
+            ->where('customer_segment', '!=', '')
+            ->distinct()
+            ->orderBy('customer_segment')
+            ->skip(2)  // Skip the first one to get the second value
             ->first();
 
         $customerTypes = DB::table('marking_data')
@@ -83,7 +108,7 @@ class FileProcessController extends Controller
             ->where('closed_reopen_by', '!=', '')
             ->toArray();
             
-        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes', 'classificationTypes', 'customerSegments', 'zTypes', 'closedTypes', 'maxValues', 'idValues', 'secondCustomerSegment'));
+        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes', 'classificationTypes', 'customerSegments', 'zTypes', 'closedTypes', 'maxValues', 'idValues', 'secondCustomerSegment', 'maxValues2', 'idValues2', 'thirdCustomerSegment', 'maxValues3', 'idValues3'));
     }
 
     public function process(Request $request)
