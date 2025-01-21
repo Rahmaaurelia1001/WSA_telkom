@@ -155,6 +155,7 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">CLOSED HI</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">IS MANJA</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">SISA DURASI</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">GRUP DURASI SISA ORDER TTR OPEN</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">IS NOT GAMAS</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">IS DUPLICATE</th>
                             </tr>
@@ -184,6 +185,8 @@
         const idValues2 = @json($idValues2);
         const maxValues3 = @json($maxValues3);
         const idValues3 = @json($idValues3);
+        const maxValues4 = @json($maxValues);
+        const idValues4 = @json($idValues4);
         const ttrThreshold = @json($ttrThreshold);
         const ttrThreshold1 = @json($ttrThreshold1);
         const ttrThreshold2 = @json($ttrThreshold2);
@@ -1006,31 +1009,81 @@
         return !isNaN(hours) && hours <= ttrThreshold3;
     }
 
-    function calculateNonHVCTimeDifference(reportedDate, firstNonHVCValue) {
-    try {
-        console.log('Starting calculation for NonHVC Time Difference...');
-        console.log('Reported Date:', reportedDate);
-        console.log('First NonHVC Value:', firstNonHVCValue);
+    function calculateNonHVCTimeDifference(reportedDate, firstNonHVCValue) 
+    {
+        try {
+            console.log('Starting calculation for NonHVC Time Difference...');
+            console.log('Reported Date:', reportedDate);
+            console.log('First NonHVC Value:', firstNonHVCValue);
 
-        // Get the time difference for the reported date
-        const reportedTimeDiff = calculateTimeDifference(reportedDate);
-        console.log('Reported Time Difference:', reportedTimeDiff);
+            // Get the time difference for the reported date
+            const reportedTimeDiff = calculateTimeDifference(reportedDate);
+            console.log('Reported Time Difference:', reportedTimeDiff);
 
-        // Remove 'jam' from the string and convert to number
-        const reportedHours = parseFloat(reportedTimeDiff.replace(' jam', ''));
-        console.log('Reported Hours (numeric):', reportedHours);
+            // Remove 'jam' from the string and convert to number
+            const reportedHours = parseFloat(reportedTimeDiff.replace(' jam', ''));
+            console.log('Reported Hours (numeric):', reportedHours);
 
-        // Access the value property of firstNonHVCValue object
-        const nonHVCValue = firstNonHVCValue.value;
-        
-        // Calculate the difference between first NonHVC value and reported time
-        const difference = nonHVCValue - reportedHours;
-        console.log('Calculated Difference (numeric):', difference);
+            // Access the value property of firstNonHVCValue object
+            const nonHVCValue = firstNonHVCValue.value;
+            
+            // Calculate the difference between first NonHVC value and reported time
+            const difference = nonHVCValue - reportedHours;
+            console.log('Calculated Difference (numeric):', difference);
 
-        return difference;
-    } catch (error) {
-        console.error('Error calculating NonHVC time difference:', error);
-        return '0.00 jam';
+            return difference;
+        } catch (error) {
+            console.error('Error calculating NonHVC time difference:', error);
+            return '0.00 jam';
+        }
+    }
+
+    function getMarking36(timeDifferenceInput) {
+    // Handle both string and number inputs
+    let timeDifference;
+    
+    if (typeof timeDifferenceInput === 'string') {
+        // If it's a string, remove "jam" and convert to number
+        timeDifference = parseFloat(timeDifferenceInput.replace(' jam', ''));
+        console.log("Input is a string. Converted to number:", timeDifference);
+    } else {
+        // If it's already a number, use it directly
+        timeDifference = timeDifferenceInput;
+        console.log("Input is already a number:", timeDifference);
+    }
+    
+    // Handle NaN case
+    if (isNaN(timeDifference)) {
+        console.log("Invalid input detected. Returning default value.");
+        return idValues4[7]; // Return default value for invalid input
+    }
+    
+    // Apply the formula logic
+    console.log("Applying formula logic for timeDifference:", timeDifference);
+    if (timeDifference >= maxValues4[0]) {
+        console.log("Returning idValues4[0] for timeDifference:", timeDifference);
+        return idValues4[0];
+    } else if (timeDifference >= maxValues4[1]) {
+        console.log("Returning idValues4[1] for timeDifference:", timeDifference);
+        return idValues4[1];
+    } else if (timeDifference >= maxValues4[2]) {
+        console.log("Returning idValues4[2] for timeDifference:", timeDifference);
+        return idValues4[2];
+    } else if (timeDifference >= maxValues4[3]) {
+        console.log("Returning idValues4[3] for timeDifference:", timeDifference);
+        return idValues4[3];
+    } else if (timeDifference >= maxValues4[4]) {
+        console.log("Returning idValues4[4] for timeDifference:", timeDifference);
+        return idValues4[4];
+    } else if (timeDifference >= maxValues4[5]) {
+        console.log("Returning idValues4[5] for timeDifference:", timeDifference);
+        return idValues4[5];
+    } else if (timeDifference >= maxValues4[6]) {
+        console.log("Returning idValues4[6] for timeDifference:", timeDifference);
+        return idValues4[6];
+    } else {
+        console.log("Returning idValues4[7] for timeDifference:", timeDifference);
+        return idValues4[7];
     }
 }
 
@@ -1106,6 +1159,7 @@
             { value: compareDateWithToday(resolveDate) },
             { value: isBookingDateValid ? 'True' : 'False' },
             { value: calculateNonHVCTimeDifference(reportedDate, firstNonHVCValue) },
+            { value: getMarking36(calculateNonHVCTimeDifference(reportedDate, firstNonHVCValue)) }, 
             { value: isTiketValid ? 'True' : 'False' },
             { value: isUnique ? 'True' : 'False' },
             

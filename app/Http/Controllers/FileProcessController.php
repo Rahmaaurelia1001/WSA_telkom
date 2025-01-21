@@ -42,6 +42,14 @@ class FileProcessController extends Controller
 
         $maxValues3 = $markingnNon->pluck('max')->toArray();
         $idValues3 = $markingnNon->pluck('id')->toArray();
+
+        $marking36 = DB::table('marking_36_jam_nonhvc')
+            ->select('id', 'max2')
+            ->orderBy('max2', 'asc')
+            ->get();
+
+        $maxValues4 = $marking36->pluck('max2')->toArray();
+        $idValues4 = $marking36->pluck('id')->toArray();
      
         $serviceTypes = DB::table('marking_data')
             ->select('service_type')
@@ -108,7 +116,7 @@ class FileProcessController extends Controller
             ->where('closed_reopen_by', '!=', '')
             ->toArray();
         
-            $ttrValue = DB::table('ttr_data')
+        $ttrValue = DB::table('ttr_data')
             ->select('jam_value')
             ->orderBy('id', 'asc')
             ->first();
@@ -143,7 +151,7 @@ class FileProcessController extends Controller
 
         $nonHVCValue = $firstNonHVCValue ? $firstNonHVCValue->value : 0;
 
-        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes', 'classificationTypes', 'customerSegments', 'zTypes', 'closedTypes', 'maxValues', 'idValues', 'secondCustomerSegment', 'maxValues2', 'idValues2', 'thirdCustomerSegment', 'maxValues3', 'idValues3',  'ttrThreshold', 'ttrThreshold1', 'ttrThreshold2', 'ttrThreshold3', 'nonHVCValue', 'firstNonHVCValue'));
+        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes', 'classificationTypes', 'customerSegments', 'zTypes', 'closedTypes', 'maxValues', 'idValues', 'secondCustomerSegment', 'maxValues2', 'idValues2', 'thirdCustomerSegment', 'maxValues3', 'idValues3', 'maxValues4', 'idValues4',  'ttrThreshold', 'ttrThreshold1', 'ttrThreshold2', 'ttrThreshold3', 'nonHVCValue', 'firstNonHVCValue'));
     }
 
     public function process(Request $request)
