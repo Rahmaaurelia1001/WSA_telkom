@@ -107,8 +107,43 @@ class FileProcessController extends Controller
             ->whereNotNull('closed_reopen_by')
             ->where('closed_reopen_by', '!=', '')
             ->toArray();
-            
-        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes', 'classificationTypes', 'customerSegments', 'zTypes', 'closedTypes', 'maxValues', 'idValues', 'secondCustomerSegment', 'maxValues2', 'idValues2', 'thirdCustomerSegment', 'maxValues3', 'idValues3'));
+        
+            $ttrValue = DB::table('ttr_data')
+            ->select('jam_value')
+            ->orderBy('id', 'asc')
+            ->first();
+        
+        $ttrValue1 = DB::table('ttr_data')
+            ->select('jam_value')
+            ->orderBy('id', 'asc')
+            ->skip(1)
+            ->first();
+        
+        $ttrValue2 = DB::table('ttr_data')
+            ->select('jam_value')
+            ->orderBy('id', 'asc')
+            ->skip(2)
+            ->first();
+        
+        $ttrValue3 = DB::table('ttr_data')
+            ->select('jam_value')
+            ->orderBy('id', 'asc')
+            ->skip(3)
+            ->first();
+        
+        $ttrThreshold = $ttrValue ? $ttrValue->jam_value : 0;
+        $ttrThreshold1 = $ttrValue1 ? $ttrValue1->jam_value : 0;
+        $ttrThreshold2 = $ttrValue2 ? $ttrValue2->jam_value : 0;
+        $ttrThreshold3 = $ttrValue3 ? $ttrValue3->jam_value : 0;
+
+        $firstNonHVCValue = DB::table('marking_36_jam_nonhvc')
+            ->select('value')
+            ->orderBy('id', 'asc')
+            ->first();
+
+        $nonHVCValue = $firstNonHVCValue ? $firstNonHVCValue->value : 0;
+
+        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes', 'classificationTypes', 'customerSegments', 'zTypes', 'closedTypes', 'maxValues', 'idValues', 'secondCustomerSegment', 'maxValues2', 'idValues2', 'thirdCustomerSegment', 'maxValues3', 'idValues3',  'ttrThreshold', 'ttrThreshold1', 'ttrThreshold2', 'ttrThreshold3', 'nonHVCValue', 'firstNonHVCValue'));
     }
 
     public function process(Request $request)
@@ -603,5 +638,6 @@ class FileProcessController extends Controller
             return response()->json(['error' => 'Terjadi kesalahan saat memeriksa closed type'], 500);
         }
     }
+
 
 }

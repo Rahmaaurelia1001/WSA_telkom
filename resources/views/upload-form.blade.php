@@ -147,8 +147,14 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TTR RESOLVED dari OPEN</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Manja</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TTR RESOLVED dari MANJA</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">VALID CLOSE</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">COMPLY TTR 3 Jam Manja</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">COMPLY TTR 3 Diamond</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">COMPLY TTR 3 Platinum</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">COMPLY TTR 3 Non HVC</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">CLOSED HI</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">IS MANJA</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">SISA DURASI</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">IS NOT GAMAS</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">IS DUPLICATE</th>
                             </tr>
@@ -178,8 +184,13 @@
         const idValues2 = @json($idValues2);
         const maxValues3 = @json($maxValues3);
         const idValues3 = @json($idValues3);
+        const ttrThreshold = @json($ttrThreshold);
+        const ttrThreshold1 = @json($ttrThreshold1);
+        const ttrThreshold2 = @json($ttrThreshold2);
+        const ttrThreshold3 = @json($ttrThreshold3);
         const secondCustomerSegment = @json($secondCustomerSegment);
         const thirdCustomerSegment = @json($thirdCustomerSegment);
+        const firstNonHVCValue = @json($firstNonHVCValue);
         const columnSelect = document.getElementById('column-select');
         const checkboxContainer = document.getElementById('checkbox-container');
         const incidentColumnIndex = header.indexOf('INCIDENT');
@@ -957,6 +968,71 @@
         return !secondSegmentMatch && !thirdSegmentMatch;
     }
 
+    function isAllValid(status, row, closed, isUnique) 
+    {
+        return (
+            isValidStatusType(status) && 
+            isValidAssurance(row) && 
+            isValidClosedType(closed) && 
+            isUnique
+        );
+    }
+
+    function checkTTR(timeValue) 
+    {
+        // Remove "jam" and convert to float
+        const hours = parseFloat(timeValue.replace(' jam', ''));
+        return !isNaN(hours) && hours <= ttrThreshold;
+    }
+
+    function checkTTR1(timeValue1) 
+    {
+        // Remove "jam" and convert to float
+        const hours = parseFloat(timeValue1.replace(' jam', ''));
+        return !isNaN(hours) && hours <= ttrThreshold1;
+    }
+
+    function checkTTR2(timeValue2) 
+    {
+        // Remove "jam" and convert to float
+        const hours = parseFloat(timeValue2.replace(' jam', ''));
+        return !isNaN(hours) && hours <= ttrThreshold2;
+    }
+
+    function checkTTR3(timeValue3) 
+    {
+        // Remove "jam" and convert to float
+        const hours = parseFloat(timeValue3.replace(' jam', ''));
+        return !isNaN(hours) && hours <= ttrThreshold3;
+    }
+
+    function calculateNonHVCTimeDifference(reportedDate, firstNonHVCValue) {
+    try {
+        console.log('Starting calculation for NonHVC Time Difference...');
+        console.log('Reported Date:', reportedDate);
+        console.log('First NonHVC Value:', firstNonHVCValue);
+
+        // Get the time difference for the reported date
+        const reportedTimeDiff = calculateTimeDifference(reportedDate);
+        console.log('Reported Time Difference:', reportedTimeDiff);
+
+        // Remove 'jam' from the string and convert to number
+        const reportedHours = parseFloat(reportedTimeDiff.replace(' jam', ''));
+        console.log('Reported Hours (numeric):', reportedHours);
+
+        // Access the value property of firstNonHVCValue object
+        const nonHVCValue = firstNonHVCValue.value;
+        
+        // Calculate the difference between first NonHVC value and reported time
+        const difference = nonHVCValue - reportedHours;
+        console.log('Calculated Difference (numeric):', difference);
+
+        return difference;
+    } catch (error) {
+        console.error('Error calculating NonHVC time difference:', error);
+        return '0.00 jam';
+    }
+}
 
     mergedData.forEach((row, index) => {
         console.log(`\n=== Processing Row ${index + 1} ===`);
@@ -991,6 +1067,7 @@
 
         const isUnique = countIfUnique(mergedData, incidentColumnIndex, incidentValue);
         console.log(isUnique ? "Unique" : "Duplicate");
+        
 
         const cells = [
             { value: bookingDate || '' },
@@ -1021,10 +1098,17 @@
             { value: calculateResolutionTime(resolveDate, reportedDate) + ' jam' },
             { value: processedBookingDate },
             { value: timeFromResolveToBooking + ' jam' },
+            { value: isAllValid(status, row, closed, isUnique) ? 'True' : 'False' },
+            { value: checkTTR(timeFromResolveToBooking + ' jam') ? 'True' : 'False' },
+            { value: checkTTR1(calculateResolutionTime(resolveDate, reportedDate) + ' jam') ? 'True' : 'False' },
+            { value: checkTTR2(calculateResolutionTime(resolveDate, reportedDate) + ' jam') ? 'True' : 'False' },
+            { value: checkTTR3(calculateResolutionTime(resolveDate, reportedDate) + ' jam') ? 'True' : 'False' },
             { value: compareDateWithToday(resolveDate) },
             { value: isBookingDateValid ? 'True' : 'False' },
+            { value: calculateNonHVCTimeDifference(reportedDate, firstNonHVCValue) },
             { value: isTiketValid ? 'True' : 'False' },
-            { value: isUnique ? 'True' : 'False' } 
+            { value: isUnique ? 'True' : 'False' },
+            
         ];
 
         console.log('Generated cell values:', cells.map(cell => cell.value));
