@@ -137,6 +137,8 @@
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">CLOSED</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #FFFF00; color: Black;">FILTER ASSURANCE</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #FFFF00; color: Black;" >ASSURANCE CLOSE</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">HVC DIAMOND</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">GRUP DIAMOND</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #CAEDFB; color: Black;">FCR</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TTR RESOLVED dari OPEN</th>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Manja</th>
@@ -166,6 +168,9 @@
         const classificationTypes = @json(session('classification_types', []));
         const customerSegments = @json(session('customer_segments', []));
         const zTypes = @json(session('zs', []));
+        const maxValues = @json($maxValues);
+        const idValues = @json($idValues);
+        const secondCustomerSegment = @json($secondCustomerSegment);
         const columnSelect = document.getElementById('column-select');
         const checkboxContainer = document.getElementById('checkbox-container');
         const incidentColumnIndex = header.indexOf('INCIDENT');
@@ -583,7 +588,6 @@
         return result;
     }
 
-
     function isValidTicket(row) {
     // Ambil nilai dari row menggunakan indeks yang sudah didefinisikan
         const reg1 = isRegionOne(row[regionColumnIndexProcessed]);  // Pastikan regionColumnIndexProcessed sudah benar
@@ -750,63 +754,63 @@
     }
 
     function calculateTimeFromResolveToBooking(resolveDate, processedBookingDate) {
-    console.log('Input for time calculation:', {
-        resolveDate,
-        processedBookingDate
-    });
+        console.log('Input for time calculation:', {
+            resolveDate,
+            processedBookingDate
+        });
 
-    try {
-        function getExcelSerialDate(jsDate) {
-            // Excel epoch starts on December 31, 1899
-            const excelEpoch = new Date(1899, 11, 31);
-            
-            // Get the difference in milliseconds
-            const diff = jsDate - excelEpoch;
-            
-            // Convert to days
-            const days = diff / (24 * 60 * 60 * 1000);
-            
-            // Add 1 to match Excel's system
-            // Excel considers January 1, 1900 as day 1, not 0
-            return days + 1;
-        }
-
-        // Kasus ketika resolveDate kosong
-        if (!resolveDate || resolveDate.length === 0) {
-            if (processedBookingDate && processedBookingDate.length > 0) {
-                const bookingDateTime = new Date(processedBookingDate);
-                const excelDate = getExcelSerialDate(bookingDateTime);
+        try {
+            function getExcelSerialDate(jsDate) {
+                // Excel epoch starts on December 31, 1899
+                const excelEpoch = new Date(1899, 11, 31);
                 
-                // Konversi ke jam (negatif karena resolveDate kosong)
-                const hours = -excelDate * 24;
+                // Get the difference in milliseconds
+                const diff = jsDate - excelEpoch;
                 
-                // Handle fractional part precisely
-                return hours.toFixed(2);
+                // Convert to days
+                const days = diff / (24 * 60 * 60 * 1000);
+                
+                // Add 1 to match Excel's system
+                // Excel considers January 1, 1900 as day 1, not 0
+                return days + 1;
             }
+
+            // Kasus ketika resolveDate kosong
+            if (!resolveDate || resolveDate.length === 0) {
+                if (processedBookingDate && processedBookingDate.length > 0) {
+                    const bookingDateTime = new Date(processedBookingDate);
+                    const excelDate = getExcelSerialDate(bookingDateTime);
+                    
+                    // Konversi ke jam (negatif karena resolveDate kosong)
+                    const hours = -excelDate * 24;
+                    
+                    // Handle fractional part precisely
+                    return hours.toFixed(2);
+                }
+                return "0.00";
+            }
+            
+            // Kasus ketika processedBookingDate kosong
+            if (!processedBookingDate || processedBookingDate.length === 0) {
+                const resolveDateTime = new Date(resolveDate);
+                const excelDate = getExcelSerialDate(resolveDateTime);
+                return (excelDate * 24).toFixed(2);
+            }
+            
+            // Kasus ketika kedua tanggal ada
+            const resolveDateTime = new Date(resolveDate);
+            const bookingDateTime = new Date(processedBookingDate);
+            
+            const resolveDays = getExcelSerialDate(resolveDateTime);
+            const bookingDays = getExcelSerialDate(bookingDateTime);
+            
+            const diffInDays = resolveDays - bookingDays;
+            return (diffInDays * 24).toFixed(2);
+        } catch (error) {
+            console.error('Error calculating time difference:', error);
             return "0.00";
         }
-        
-        // Kasus ketika processedBookingDate kosong
-        if (!processedBookingDate || processedBookingDate.length === 0) {
-            const resolveDateTime = new Date(resolveDate);
-            const excelDate = getExcelSerialDate(resolveDateTime);
-            return (excelDate * 24).toFixed(2);
-        }
-        
-        // Kasus ketika kedua tanggal ada
-        const resolveDateTime = new Date(resolveDate);
-        const bookingDateTime = new Date(processedBookingDate);
-        
-        const resolveDays = getExcelSerialDate(resolveDateTime);
-        const bookingDays = getExcelSerialDate(bookingDateTime);
-        
-        const diffInDays = resolveDays - bookingDays;
-        return (diffInDays * 24).toFixed(2);
-    } catch (error) {
-        console.error('Error calculating time difference:', error);
-        return "0.00";
     }
-}
 
     function compareDateWithToday(resolveDate) {
         console.log('Comparing dates:', {
@@ -863,6 +867,35 @@
         return count > 0 ? false : true;
     }
 
+    function getMarkingDiamondCategory(timeDifferenceStr) {
+        // Remove "jam" from the string and convert to number
+        const timeDifference = parseFloat(timeDifferenceStr.replace(' jam', ''));
+        
+        // Apply the formula logic
+        if (timeDifference <= maxValues[0]) {
+            return idValues[0];
+        } else if (timeDifference <= maxValues[1]) {
+            return idValues[1];
+        } else if (timeDifference <= maxValues[2]) {
+            return idValues[2];
+        } else {
+            return idValues[3];
+        }
+    }
+
+    function searchTextInValue(searchText, value) {
+        if (!searchText || !value) {
+            return false;
+        }
+        // Convert both to string and uppercase for case-insensitive search
+        const searchStr = String(searchText).toUpperCase();
+        const valueStr = String(value).toUpperCase();
+        
+        // Return true if searchStr is found in valueStr
+        return valueStr.indexOf(searchStr) !== -1;
+    }
+
+
     mergedData.forEach((row, index) => {
         console.log(`\n=== Processing Row ${index + 1} ===`);
         
@@ -916,6 +949,8 @@
             { value: isValidStatusType(status) ? 'True' : 'False' },
             { value: isValidTicket(row) ? 'True' : 'False' },
             { value: isValidAssurance(row) ? 'True' : 'False' },
+            { value: searchTextInValue(secondCustomerSegment.customer_segment, row[customertypeColumnIndex]) ? 'True' : 'False' },
+            { value: getMarkingDiamondCategory(calculateTimeDifference(reportedDate)) },
             { value: isValidClosedType(closed) ? 'True' : 'False'},
             { value: calculateResolutionTime(resolveDate, reportedDate) + ' jam' },
             { value: processedBookingDate },

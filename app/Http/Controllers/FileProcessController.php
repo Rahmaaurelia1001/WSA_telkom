@@ -18,7 +18,14 @@ class FileProcessController extends Controller
         $header = session('header', []);
         $successMessage = session('success_message', null);
         $rowCount = count($mergedData);
+
+        $markingDiamond = DB::table('marking_diamond')
+            ->select('id', 'max')
+            ->orderBy('max', 'asc')
+            ->get();
         
+        $maxValues = $markingDiamond->pluck('max')->toArray();
+        $idValues = $markingDiamond->pluck('id')->toArray();
      
         $serviceTypes = DB::table('marking_data')
             ->select('service_type')
@@ -31,6 +38,15 @@ class FileProcessController extends Controller
             ->distinct()
             ->pluck('segmen')
             ->toArray();
+
+        $secondCustomerSegment = DB::table('marking_data')
+            ->select('customer_segment')
+            ->whereNotNull('customer_segment')
+            ->where('customer_segment', '!=', '')
+            ->distinct()
+            ->orderBy('customer_segment')
+            ->skip(1)  // Skip the first one to get the second value
+            ->first();
 
         $customerTypes = DB::table('marking_data')
             ->select('customer_type')
@@ -67,7 +83,7 @@ class FileProcessController extends Controller
             ->where('closed_reopen_by', '!=', '')
             ->toArray();
             
-        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes', 'classificationTypes', 'customerSegments', 'zTypes', 'closedTypes'));
+        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes', 'classificationTypes', 'customerSegments', 'zTypes', 'closedTypes', 'maxValues', 'idValues', 'secondCustomerSegment'));
     }
 
     public function process(Request $request)
@@ -562,4 +578,5 @@ class FileProcessController extends Controller
             return response()->json(['error' => 'Terjadi kesalahan saat memeriksa closed type'], 500);
         }
     }
+
 }
