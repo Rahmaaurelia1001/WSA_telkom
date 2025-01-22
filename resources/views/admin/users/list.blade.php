@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Users List</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Konfirmasi penghapusan
+        function confirmDelete(event) {
+            if (!confirm('Are you sure you want to delete this user?')) {
+                event.preventDefault(); // Batalkan penghapusan jika tidak yakin
+            }
+        }
+    </script>
 </head>
 <body class="bg-gray-100 relative min-h-screen">
 
@@ -32,9 +40,9 @@
                                 <!-- Edit Button -->
                                 <a href="{{ route('admin.users.edit', $user) }}" 
                                     class="text-blue-500 hover:underline">Edit</a>
-                                
+                                  
                                 <!-- Delete Form -->
-                                <form action="{{ route('admin.users.destroy', $user) }}" method="POST">
+                                <form action="{{ route('admin.users.destroy', $user-> id) }}" method="POST" onsubmit="confirmDelete(event)">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="text-red-600 hover:underline">Delete</button>

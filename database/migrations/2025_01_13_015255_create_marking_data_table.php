@@ -17,7 +17,7 @@ class CreateMarkingDataTable extends Migration
         // Membuat tabel marking_data
         Schema::create('marking_data', function (Blueprint $table) {
             $table->id();
-            $table->string('marking_type');
+            $table->integer('max_value')->nullable()->change();
             $table->string('max_value');
             $table->string('service_type')->nullable();
             $table->string('customer_segment')->nullable();

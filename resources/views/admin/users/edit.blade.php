@@ -21,29 +21,62 @@
             </div>
         @endif
 
-        <form action="{{ route('admin.users.update', $user) }}" method="POST" class="bg-white p-10 rounded shadow-md max-w-2xl mx-auto">
+        <form method="POST" action="{{ route('admin.users.update', $user->id) }}">
             @csrf
-            @method('PUT')
+            @method('PUT') <!-- Menggunakan method PUT untuk update data -->
 
-            <div class="mb-4">
-                <label for="name" class="block text-gray-700">Name:</label>
-                <input type="text" id="name" name="name" value="{{ old('name', $user->name) }}" 
-                    class="w-full px-4 py-2 border rounded">
+            <!-- Name Field -->
+            <div class="mb-6">
+                <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                <input type="text" class="w-full p-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 @error('name') border-red-500 @enderror"
+                       name="name" value="{{ old('name', $user->name) }}" required>
+                @error('name')
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
+                @enderror
             </div>
 
-            <div class="mb-4">
-                <label for="email" class="block text-gray-700">Email:</label>
-                <input type="email" id="email" name="email" value="{{ old('email', $user->email) }}" 
-                    class="w-full px-4 py-2 border rounded">
+            <!-- Email Field -->
+            <div class="mb-6">
+                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" class="w-full p-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 @error('email') border-red-500 @enderror"
+                       name="email" value="{{ old('email', $user->email) }}" required>
+                @error('email')
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
+                @enderror
             </div>
 
-            <div class="flex justify-end">
-                <a href="{{ route('admin.users.list') }}" class="px-4 py-2 bg-gray-500 text-white rounded-lg mr-4 hover:bg-gray-600">
-                    Cancel
-                </a>
-                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-blue-600">
-                    Save Changes
+            <!-- Password Field (Optional for Update) -->
+            <div class="mb-6">
+                <label for="password" class="block text-sm font-medium text-gray-700">Password (Leave Blank to Keep Current)</label>
+                <input type="password" class="w-full p-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 @error('password') border-red-500 @enderror"
+                       name="password">
+                @error('password')
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <!-- Password Confirmation Field (Optional for Update) -->
+            <div class="mb-6">
+                <label for="password_confirmation" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                <input type="password" class="w-full p-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 @error('password_confirmation') border-red-500 @enderror"
+                       name="password_confirmation">
+                @error('password_confirmation')
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex justify-center mb-4">
+                <button type="submit" class="w-full px-6 py-3 bg-blue-500 text-white rounded-lg focus:outline-none hover:bg-blue-600 focus:ring-2 focus:ring-blue-500">
+                    Update User
                 </button>
+            </div>
+
+            <!-- Back Button -->
+            <div class="flex justify-center">
+                <a href="{{ route('admin.users.list') }}" class="w-full px-6 py-3 text-center bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                    Back to User List
+                </a>
             </div>
         </form>
     </div>
