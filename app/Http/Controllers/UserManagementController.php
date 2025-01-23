@@ -23,11 +23,74 @@ class UserManagementController extends Controller
         return view('admin.users.create');
     }
 
-    public function editkonstanta()
+    public function editkonstanta($id)
     {
-        // Menampilkan form pembuatan user baru
-        return view('admin.data.editkonstanta');
+        // Mengambil data konstanta yang ingin diedit
+        $konstanta = MarkingData::findOrFail($id);
+        return view('admin.data.editkonstanta', compact('konstanta'));
     }
+    public function updateKonstanta(Request $request, $id)
+    {
+        // Validasi input dari form
+        $request->validate([
+            'column' => 'required|string|in:service_type,customer_type,customer_segment,status,classification,status_closed,marking_type',
+            'value' => 'required|string|max:255',
+            'marking_type' => 'required|string|in:type1,type2,type3', // Validasi marking_type
+        ]);
+    
+        // Ambil data konstanta yang ingin diupdate
+        $konstanta = MarkingData::findOrFail($id);
+    
+        // Ambil data dari form
+        $column = $request->column;
+        $value = $request->value;
+        $markingType = $request->marking_type;
+    
+        // Tentukan max_value berdasarkan marking_type
+        $maxValue = null;
+        if ($markingType == 'type1') {
+            $maxValue = 36;  // Marking 36 Jam Non HVC
+        } elseif ($markingType == 'type2' || $markingType == 'type3') {
+            // Marking Platinum atau Diamond
+            $maxValue = "";  // Tidak ada batasan
+        }
+    
+        // Update data ke dalam tabel marking_data
+        $konstanta->update([
+            $column => $value,
+            'marking_type' => $markingType,
+            'max_value' => $maxValue,
+        ]);
+    
+        // Redirect dengan pesan sukses
+        return redirect()->route('admin.data.add')->with('success', 'Konstanta berhasil diperbarui.');
+    }
+    
+
+
+public function deleteKonstanta($id)
+{
+    // Temukan data marking berdasarkan ID
+    $konstanta = MarkingData::findOrFail($id);
+    
+    // Hapus data marking
+    $konstanta->delete();
+
+    // Log setelah data dihapus
+    \Log::debug("Konstanta berhasil dihapus:", ['konstanta_id' => $konstanta->id]);
+
+    // Redirect ke halaman index data marking setelah berhasil dihapus
+    return redirect()->route('admin.data.add')->with('success', 'Konstanta berhasil dihapus.');
+}
+
+
+
+
+
+
+
+
+
 
     public function createUser(Request $request)
 {

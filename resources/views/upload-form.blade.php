@@ -342,21 +342,27 @@
         }
 
         function isValidServiceType(service) {
-            console.log('Checking service type value:', service);
-            console.log('Available service type from database:', serviceTypes);
-            if (!service || service === "" || service === undefined || service === null) {
-                return false;
-            }
-            
-            // Normalize service type for comparison
-            const normalizedService = service.trim().toLowerCase();
-            
-            // Compare with service types from database
-            return serviceTypes.some(type => {
-                const normalizedType = type.toLowerCase().trim();
-                return normalizedType === normalizedService;
-            });
+    console.log('Checking service type value:', service);
+    console.log('Available service types from database:', serviceTypes);
+    
+    // Check if service is null, undefined, or an empty string
+    if (!service || service === "" || service === undefined || service === null) {
+        return false;
+    }
+
+    // Normalize service type for comparison
+    const normalizedService = service.trim().toLowerCase();
+    
+    // Compare with service types from database
+    return serviceTypes.some(type => {
+        // Check if the type is valid (not null or undefined)
+        if (type && typeof type === 'string') {
+            const normalizedType = type.toLowerCase().trim();
+            return normalizedType === normalizedService;
         }
+        return false; // If type is invalid, return false
+    });
+}
 
         function isValidSegmen(segmen) {
             console.log('Checking segmen type value:', segmen);

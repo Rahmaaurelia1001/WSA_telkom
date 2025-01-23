@@ -49,7 +49,7 @@ Route::middleware(['auth'])->group(function () {
     //     // Rute untuk admin user management
         Route::get('/users', [UserManagementController::class, 'list'])->name('admin.users.list');
         Route::get('/users/create', [UserManagementController::class, 'create'])->name('admin.users.create');
-        Route::get('/users/konstanta', [UserManagementController::class, 'editkonstanta'])->name('admin.data.editkonstanta');
+        // Route::get('/users/konstanta', [UserManagementController::class, 'editkonstanta'])->name('admin.data.editkonstanta');
         Route::post('/users/create', [UserManagementController::class, 'createUser'])->name('admin.users.createUser');
         // Route::post('/users', [UserManagementController::class, 'store'])->name('admin.users.store');
         Route::delete('/users/{user}', [UserManagementController::class, 'destroylist'])->name('admin.users.destroy');
@@ -63,6 +63,17 @@ Route::middleware(['auth'])->group(function () {
         // Route::post('/store', [AdminDataController::class, 'store'])->name('store');
         // Route::delete('/destroy/{id}', [AdminDataController::class, 'destroy'])->name('destroy');
         Route::get('/admin/data/edit/', [UserManagementController::class, 'edit'])->name('admin.data.edit');
-        Route::delete('/admin/data/delete/', [UserManagementController::class, 'destroy'])->name('admin.data.destroy');
+        // Route::put('/admin/edit/{id}', [UserManagementController::class, 'updateKonstanta'])->name('admin.data.update');
+        // Route::delete('/admin/data/delete{id}/', [UserManagementController::class, 'deleteKonstanta'])->name('admin.data.deleteKonstanta');
+        
+        Route::get('/users/konstanta/{id}/edit', [UserManagementController::class, 'editkonstanta'])->name('admin.data.editkonstanta');
+        // Route::put('/users/konstanta/{id}', [UserManagementController::class, 'updateKonstanta'])->name('admin.data.updateKonstanta');
+        Route::delete('/users/konstanta/{id}', [UserManagementController::class, 'deleteKonstanta'])->name('admin.data.deleteKonstanta');
+        Route::put('/users/konstanta/{id}/edit2', [UserManagementController::class, 'updateKonstanta'])->name('admin.data.updateKonstanta');
+        // Route::delete('/data/konstanta/{id}', [UserManagementController::class, 'deleteKonstanta'])->name('admin.data.deleteKonstanta');
+
+       
+
+
     // });
 });

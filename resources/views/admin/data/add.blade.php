@@ -46,10 +46,10 @@
                                     class="text-blue-500 hover:underline">Edit</a>
                                 
                                 <!-- Delete Form -->
-                                <form action="{{ route('admin.data.destroy', $data->id) }}" method="POST">
+                                <form action="{{ route('admin.data.deleteKonstanta', $data->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus konstanta ini?');">
     @csrf
     @method('DELETE')
-    <button type="submit" class="text-red-600 hover:underline">Delete</button>
+    <button type="submit" class="text-red-500 hover:text-red-700">Delete</button>
 </form>
 
                             </td>
@@ -60,62 +60,61 @@
         </div>
 
         <!-- Button Tambah Konstanta -->
-        <button id="showFormBtn" class="px-6 py-3 bg-green-500 text-white rounded-lg shadow-lg hover:bg-green-600 mt-6">
+        <button id="showFormBtn" class="px-6 py-3 bg-red-600 text-white rounded-lg shadow-lg hover:bg-red-700 mt-6">
             Tambah Konstanta
         </button>
 
         <!-- Form Tambah Konstanta -->
         <div id="addConstantaForm" class="mt-6 hidden">
-        <form action="{{ route('admin.data.store') }}" method="POST">
-    @csrf
-    <!-- Pilihan Kolom -->
-    <div class="mb-4">
-        <label for="column" class="block text-gray-700 font-semibold">Pilih Kolom</label>
-        <select id="column" name="column" class="form-select mt-2 block w-full bg-gray-50 border border-gray-300 p-3 rounded-lg">
-            <option value="service_type">Service Type</option>
-            <option value="customer_type">Customer Type</option>
-            <option value="customer_segment">Customer Segment</option>
-            <option value="status">Status</option>
-            <option value="classification">Classification</option>
-            <option value="status_closed">Status Closed</option>
-            <option value="marking_type">Marking Type</option>
-        </select>
-    </div>
+            <form action="{{ route('admin.data.store') }}" method="POST">
+                @csrf
+                <!-- Pilihan Kolom -->
+                <div class="mb-4">
+                    <label for="column" class="block text-gray-700 font-semibold">Pilih Kolom</label>
+                    <select id="column" name="column" class="form-select mt-2 block w-full bg-gray-50 border border-gray-300 p-3 rounded-lg">
+                        <option value="service_type">Service Type</option>
+                        <option value="customer_type">Customer Type</option>
+                        <option value="customer_segment">Customer Segment</option>
+                        <option value="status">Status</option>
+                        <option value="classification">Classification</option>
+                        <option value="status_closed">Status Closed</option>
+                        <option value="marking_type">Marking Type</option>
+                    </select>
+                </div>
 
-    <!-- Input Nilai Konstanta -->
-    <div class="mb-4">
-        <label for="value" class="block text-gray-700 font-semibold">Tambah Nilai Konstanta</label>
-        <input type="text" id="value" name="value" class="form-input mt-2 block w-full bg-gray-50 border border-gray-300 p-3 rounded-lg" placeholder="Masukkan nilai konstanta baru" required>
-        @error('value')
-            <div class="text-red-500 text-sm">{{ $message }}</div>
-        @enderror
-    </div>
+                <!-- Input Nilai Konstanta -->
+                <div class="mb-4">
+                    <label for="value" class="block text-gray-700 font-semibold">Tambah Nilai Konstanta</label>
+                    <input type="text" id="value" name="value" class="form-input mt-2 block w-full bg-gray-50 border border-gray-300 p-3 rounded-lg" placeholder="Masukkan nilai konstanta baru" required>
+                    @error('value')
+                        <div class="text-red-500 text-sm">{{ $message }}</div>
+                    @enderror
+                </div>
 
-    <!-- Input Marking Type -->
-    <div class="mb-4">
-        <label for="marking_type" class="block text-gray-700 font-semibold">Pilih Marking Type</label>
-        <select id="marking_type" name="marking_type" class="form-select mt-2 block w-full bg-gray-50 border border-gray-300 p-3 rounded-lg" required>
-            <option value="type1">Marking 36 Jam Non HVC</option>
-            <option value="type2">Marking Platinum</option>
-            <option value="type3">Marking Diamond</option>
-        </select>
-        @error('marking_type')
-            <div class="text-red-500 text-sm">{{ $message }}</div>
-        @enderror
-    </div>
+                <!-- Input Marking Type -->
+                <div class="mb-4">
+                    <label for="marking_type" class="block text-gray-700 font-semibold">Pilih Marking Type</label>
+                    <select id="marking_type" name="marking_type" class="form-select mt-2 block w-full bg-gray-50 border border-gray-300 p-3 rounded-lg" required>
+                        <option value="type1">Marking 36 Jam Non HVC</option>
+                        <option value="type2">Marking Platinum</option>
+                        <option value="type3">Marking Diamond</option>
+                    </select>
+                    @error('marking_type')
+                        <div class="text-red-500 text-sm">{{ $message }}</div>
+                    @enderror
+                </div>
 
-    <!-- Tombol Simpan -->
-    <button type="submit" class="px-6 py-3 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600">
-        Simpan Konstanta
-    </button>
-</form>
-
+                <!-- Tombol Simpan -->
+                <button type="submit" class="px-6 py-3 bg-red-600 text-white rounded-lg shadow-lg hover:bg-red-700">
+                    Simpan Konstanta
+                </button>
+            </form>
         </div>
     </div>
 
     <!-- Button di kanan bawah untuk kembali ke dashboard -->
     <div class="absolute bottom-6 right-6">
-        <a href="{{ route('dashboard') }}" class="px-6 py-3 bg-red-500 text-white rounded-lg shadow-lg hover:bg-red-600">
+        <a href="{{ route('dashboard') }}" class="px-6 py-3 bg-red-600 text-white rounded-lg shadow-lg hover:bg-red-700">
             Kembali ke Dashboard
         </a>
     </div>
@@ -123,23 +122,8 @@
     <script>
         // Menampilkan atau menyembunyikan form untuk menambahkan konstanta
         document.getElementById('showFormBtn').addEventListener('click', function () {
-    const form = document.getElementById('addConstantaForm');
-    form.classList.toggle('hidden');
-});
-
-
-        // Log data form ke console saat disubmit
-        document.querySelector('form').addEventListener('submit', function (event) {
-            // Mengambil data input form
-            const column = document.getElementById('column').value;
-            const value = document.getElementById('value').value;
-            const markingType = document.getElementById('marking_type').value;
-
-            // Menampilkan data form di console
-            console.log(`Data yang akan disubmit:`);
-            console.log(`Kolom: ${column}`);
-            console.log(`Nilai: ${value}`);
-            console.log(`Marking Type: ${markingType}`);
+            const form = document.getElementById('addConstantaForm');
+            form.classList.toggle('hidden');
         });
     </script>
 
