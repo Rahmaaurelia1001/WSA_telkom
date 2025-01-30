@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+<meta name="csrf-token" content="{{ csrf_token() }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unggah dan Gabungkan File</title>
@@ -57,28 +58,29 @@
         </div>
 
         @if(session('merged_data') && count(session('merged_data')) > 1)
-            <div class="mt-6 bg-white shadow-md rounded-lg p-6" style="width: 100vw; margin-left: calc(-50vw + 50%); padding-left: 40px; padding-right: 20px;">
-                <h2 class="text-xl font-bold mb-4 text-center">Data yang Dihapus</h2>
-                <form action="{{ route('upload.delete') }}" method="POST">
-                    @csrf
-                    <div class="mb-4">
-                        <label class="block text-lg font-medium mb-2">Pilih Kolom:</label>
-                        <select name="column" id="column-select" class="border rounded w-full p-2" required>
-                            @foreach(session('header') as $header)
-                                <option value="{{ $header }}">{{ $header }}</option>
-                            @endforeach
-                        </select>
+        <div class="mt-6 bg-white shadow-md rounded-lg p-4" style="width: 2000px; max-width: 1000px; margin: 20px auto; padding: 20px;">
+            <h2 class="text-xl font-bold mb-4 text-center">Data yang Dihapus</h2>
+            <form action="{{ route('upload.delete') }}" method="POST">
+                @csrf
+                <div class="mb-4">
+                    <label class="block text-lg font-medium mb-2">Pilih Kolom:</label>
+                    <select name="column" id="column-select" class="border rounded w-full p-2" required>
+                        @foreach(session('header') as $header)
+                            <option value="{{ $header }}">{{ $header }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-lg font-medium mb-2">Pilih Nilai:</label>
+                    <div id="checkbox-container" class="grid grid-cols-5 gap-2 overflow-y-auto max-h-60 border border-gray-300 p-3 rounded">
                     </div>
-                    <div class="mb-4">
-                        <label class="block text-lg font-medium mb-2">Pilih Nilai:</label>
-                        <div id="checkbox-container" class="grid grid-cols-5 gap-2 overflow-y-auto max-h-72 border border-gray-300 p-4 rounded">
-                        </div>
-                        <button type="submit" class="w-auto bg-red-600 text-white py-1 px-4 rounded hover:bg-red-700 transition mt-4 float-right">
-                            Hapus Data
-                        </button>
-                    </div>
-                </form>
-            </div>
+                    <button type="submit" class="w-auto bg-red-600 text-white py-1 px-4 rounded hover:bg-red-700 transition mt-4 float-right">
+                        Hapus Data
+                    </button>
+                </div>
+            </form>
+        </div>
+
 
             <div class="bg-white shadow-md rounded-lg p-6 mt-10" style="width: 100vw; margin-left: calc(-50vw + 50%); padding-left: 20px; padding-right: 20px;">
                 <h2 class="text-xl font-bold mb-4 text-center">Data yang Digabungkan</h2>
@@ -86,7 +88,7 @@
                     Jumlah Baris Data: <strong>{{ $rowCount }}</strong>
                 </p>
                 <div class="overflow-x-auto overflow-y-auto max-h-screen">
-                    <table class="table-auto w-full border-collapse border border-gray-300">
+                    <table id="merged-table" class="table-auto w-full border-collapse border border-gray-300">
                         <thead class="bg-gray-200">
                             <tr>
                                 @foreach(session('header') as $header)
@@ -116,7 +118,7 @@
             <div id="booking-date-table" class="bg-white shadow-md rounded-lg p-6 mt-10" style="width: 100vw; margin-left: calc(-50vw + 50%); padding-left: 20px; padding-right: 20px;">
                 <h3 class="text-lg font-semibold text-center mb-4">Hasil Proses Data</h3>
                 <div class="overflow-x-auto overflow-y-auto max-h-96">
-                    <table class="table-auto w-full border-collapse border border-gray-300">
+                    <table  id="booking-date-table" class="table-auto w-full border-collapse border border-gray-300">
                         <thead class="sticky top-0 bg-gray-200">
                             <tr>
                                 <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #CAEDFB; color: Black;">BOOKING DATE</th>
@@ -166,8 +168,20 @@
                     </table>
                 </div>
             </div>
+
+            <button 
+    onclick="window.location.href='{{ url('/dashboardUser') }}'" 
+    class="mt-4 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
+    Tampilkan Dashboard
+</button>
         @endif
     </div>
+    <div class="mt-4">
+    <button id="downloadExcel" class="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded">
+        Download Excel
+    </button>
+</div>
+
 
     <script>
         const mergedData = @json(session('merged_data', []));
@@ -648,7 +662,7 @@
                             tiketAktif;
 
             console.log('Is valid ticket:', isValid);
-            return isValid ? 'True' : 'False'; // Return 'True' jika valid, 'False' jika tidak
+            return isValid ? 'TRUE' : 'FALSE'; // Return 'TRUE' jika valid, 'FALSE' jika tidak
     }
 
     function isValidAssurance(row) {
@@ -842,17 +856,17 @@
         });
 
         try {
-            // If resolveDate is empty or invalid, return 'False'
+            // If resolveDate is empty or invalid, return 'FALSE'
             if (!resolveDate || resolveDate.length === 0) {
                 console.log('Empty or invalid resolve date');
-                return 'False';
+                return 'FALSE';
             }
 
             // Format resolveDate to YYYYMMDD
             const resolve = dayjs(resolveDate);
             if (!resolve.isValid()) {
                 console.log('Invalid resolve date format');
-                return 'False';
+                return 'FALSE';
             }
             const formattedResolveDate = resolve.format('YYYYMMDD');
 
@@ -865,11 +879,11 @@
                 formattedToday
             });
 
-            // Compare the formatted dates and return 'True' or 'False'
-            return formattedResolveDate === formattedToday ? 'True' : 'False';
+            // Compare the formatted dates and return 'TRUE' or 'FALSE'
+            return formattedResolveDate === formattedToday ? 'TRUE' : 'FALSE';
         } catch (error) {
             console.error('Error comparing dates:', error);
-            return 'False';
+            return 'FALSE';
         }
     }
 
@@ -1125,43 +1139,43 @@
         const cells = [
             { value: bookingDate || '' },
             { value: calculateTimeDifference(bookingDate) },
-            { value: isTodayWO(bookingDate) ? 'True' : 'False' },
+            { value: isTodayWO(bookingDate) ? 'TRUE' : 'FALSE' },
             { value: extractHourFromDate(bookingDate) },
             { value: calculateTimeDifference(reportedDate) },
-            { value: isRegionOne(region) ? 'True' : 'False' },
-            { value: isValidServiceType(service) ? 'True' : 'False' },
-            { value: isValidSegmen(segmen) ? 'True' : 'False' },
-            { value: isValidCustomerType(customer) ? 'True' : 'False' },
-            { value: isValidClassificationType(classification) ? 'True' : 'False' },
-            { value: isValidCustomerSegment(customersegment) ? 'True' : 'False' },
-            { value: checkPDAInSymptom(symptom) ? 'True' : 'False' },
-            { value: isValidZType(z) ? 'True' : 'False' },
-            { value: ticketAktif ? 'True' : 'False' },
-            { value: isGuaranteeStatus(guaranteeStatus) ? 'True' : 'False' },
-            { value: isValidStatusType(status) ? 'True' : 'False' },
-            { value: isValidTicket(row) ? 'True' : 'False' },
-            { value: isValidAssurance(row) ? 'True' : 'False' },
-            { value: searchTextInValue(secondCustomerSegment.customer_segment, row[customertypeColumnIndex]) ? 'True' : 'False' },
+            { value: isRegionOne(region) ? 'TRUE' : 'FALSE' },
+            { value: isValidServiceType(service) ? 'TRUE' : 'FALSE' },
+            { value: isValidSegmen(segmen) ? 'TRUE' : 'FALSE' },
+            { value: isValidCustomerType(customer) ? 'TRUE' : 'FALSE' },
+            { value: isValidClassificationType(classification) ? 'TRUE' : 'FALSE' },
+            { value: isValidCustomerSegment(customersegment) ? 'TRUE' : 'FALSE' },
+            { value: checkPDAInSymptom(symptom) ? 'TRUE' : 'FALSE' },
+            { value: isValidZType(z) ? 'TRUE' : 'FALSE' },
+            { value: ticketAktif ? 'TRUE' : 'FALSE' },
+            { value: isGuaranteeStatus(guaranteeStatus) ? 'TRUE' : 'FALSE' },
+            { value: isValidStatusType(status) ? 'TRUE' : 'FALSE' },
+            { value: isValidTicket(row) ? 'TRUE' : 'FALSE' },
+            { value: isValidAssurance(row) ? 'TRUE' : 'FALSE' },
+            { value: searchTextInValue(secondCustomerSegment.customer_segment, row[customertypeColumnIndex]) ? 'TRUE' : 'FALSE' },
             { value: getMarkingDiamondCategory(calculateTimeDifference(reportedDate)) },
-            { value: searchTextInValue(thirdCustomerSegment.customer_segment, row[customertypeColumnIndex]) ? 'True' : 'False' },
+            { value: searchTextInValue(thirdCustomerSegment.customer_segment, row[customertypeColumnIndex]) ? 'TRUE' : 'FALSE' },
             { value: getMarkingPlatinumCategory(calculateTimeDifference(reportedDate)) },
-            { value: isBothSegmentsFalse(row, secondCustomerSegment, thirdCustomerSegment) ? 'True' : 'False' },
+            { value: isBothSegmentsFalse(row, secondCustomerSegment, thirdCustomerSegment) ? 'TRUE' : 'FALSE' },
             { value: getMarkingNonCategory(calculateTimeDifference(reportedDate)) },
-            { value: isValidClosedType(closed) ? 'True' : 'False'},
+            { value: isValidClosedType(closed) ? 'TRUE' : 'FALSE'},
             { value: calculateResolutionTime(resolveDate, reportedDate) + ' jam' },
             { value: processedBookingDate },
             { value: timeFromResolveToBooking + ' jam' },
-            { value: isAllValid(status, row, closed, isUnique) ? 'True' : 'False' },
-            { value: checkTTR(timeFromResolveToBooking + ' jam') ? 'True' : 'False' },
-            { value: checkTTR1(calculateResolutionTime(resolveDate, reportedDate) + ' jam') ? 'True' : 'False' },
-            { value: checkTTR2(calculateResolutionTime(resolveDate, reportedDate) + ' jam') ? 'True' : 'False' },
-            { value: checkTTR3(calculateResolutionTime(resolveDate, reportedDate) + ' jam') ? 'True' : 'False' },
+            { value: isAllValid(status, row, closed, isUnique) ? 'TRUE' : 'FALSE' },
+            { value: checkTTR(timeFromResolveToBooking + ' jam') ? 'TRUE' : 'FALSE' },
+            { value: checkTTR1(calculateResolutionTime(resolveDate, reportedDate) + ' jam') ? 'TRUE' : 'FALSE' },
+            { value: checkTTR2(calculateResolutionTime(resolveDate, reportedDate) + ' jam') ? 'TRUE' : 'FALSE' },
+            { value: checkTTR3(calculateResolutionTime(resolveDate, reportedDate) + ' jam') ? 'TRUE' : 'FALSE' },
             { value: compareDateWithToday(resolveDate) },
-            { value: isBookingDateValid ? 'True' : 'False' },
+            { value: isBookingDateValid ? 'TRUE' : 'FALSE' },
             { value: calculateNonHVCTimeDifference(reportedDate, firstNonHVCValue) },
             { value: getMarking36(calculateNonHVCTimeDifference(reportedDate, firstNonHVCValue)) }, 
-            { value: isTiketValid ? 'True' : 'False' },
-            { value: isUnique ? 'True' : 'False' },
+            { value: isTiketValid ? 'TRUE' : 'FALSE' },
+            { value: isUnique ? 'TRUE' : 'FALSE' },
             
         ];
 
@@ -1184,5 +1198,99 @@
         columnSelect.addEventListener('change', populateCheckboxes);
         populateCheckboxes();
     </script>
+    <!-- Tambahkan sebelum penutup </body> -->
+    
+<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+<script>
+document.getElementById('downloadExcel').addEventListener('click', async function() {
+    try {
+        const mergedTable = document.getElementById('merged-table');
+        const processedTable = document.getElementById('booking-date-table');
+        
+        if (!mergedTable || !processedTable) {
+            throw new Error('Tabel tidak ditemukan!');
+        }
+
+        // Fungsi untuk mendapatkan data tabel
+        function getTableData(table) {
+            const rows = table.getElementsByTagName('tr');
+            const data = [];
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const rowData = [];
+                const cells = row.getElementsByTagName('td');
+                const headers = row.getElementsByTagName('th');
+                
+                if (headers.length > 0) {
+                    for (let j = 0; j < headers.length; j++) {
+                        rowData.push(headers[j].textContent.trim());
+                    }
+                }
+                
+                if (cells.length > 0) {
+                    for (let j = 0; j < cells.length; j++) {
+                        rowData.push(cells[j].textContent.trim());
+                    }
+                }
+                
+                if (rowData.length > 0) {
+                    data.push(rowData);
+                }
+            }
+            return data;
+        }
+
+        const mergedData = getTableData(mergedTable);
+        const processedData = getTableData(processedTable);
+        
+        const combinedData = [];
+        const maxRows = Math.max(mergedData.length, processedData.length);
+        
+        for (let i = 0; i < maxRows; i++) {
+            const row = [];
+            if (mergedData[i]) row.push(...mergedData[i]);
+            if (processedData[i]) row.push(...processedData[i]);
+            combinedData.push(row);
+        }
+
+        // Debug: Tampilkan URL yang digunakan
+        console.log('Sending request to:', window.location.origin + '/api/save-excel');
+
+        const response = await fetch('/api/save-excel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            },
+            body: JSON.stringify({ data: combinedData })
+        });
+
+        // Debug: Log response
+        console.log('Response status:', response.status);
+        console.log('Response headers:', [...response.headers.entries()]);
+
+        // Cek content type
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+            // Jika response adalah HTML, tampilkan pesan error yang lebih informatif
+            const htmlContent = await response.text();
+            console.error('Received HTML response:', htmlContent);
+            throw new Error('Server mengembalikan halaman HTML. Kemungkinan route tidak ditemukan.');
+        }
+
+        const responseData = await response.json();
+        
+        if (response.ok) {
+            alert('File berhasil disimpan!');
+        } else {
+            throw new Error(responseData.error || 'Terjadi kesalahan saat menyimpan file');
+        }
+    } catch (error) {
+        console.error('Error detail:', error);
+        alert('Gagal menyimpan file. Error: ' + error.message);
+    }
+});
+</script>
 </body>
 </html>

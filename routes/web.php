@@ -5,6 +5,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\FileProcessController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\DashboardUserController;
+use App\Http\Controllers\ExcelController;  // Mengimport controller
 
 // Redirect default ke login
 Route::get('/', function () {
@@ -21,6 +23,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Dashboard untuk user
     Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboardUser', [DashboardUserController::class, 'dashboardUser'])->name('dashboardUser');
+;
+    
 
     // Halaman dashboard untuk admin
     // Route::middleware(['auth', 'role:admin'])->group(function () {
@@ -39,6 +44,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+        // Route::post('/download-excel', [ExcelController::class, 'downloadExcel']);
+        // routes/web.php
+        Route::post('/api/save-excel', [ExcelController::class, 'saveExcel']);
         
     // });    
 
