@@ -54,6 +54,8 @@ class FileProcessController extends Controller
         $serviceTypes = DB::table('marking_data')
             ->select('service_type')
             ->distinct()
+            ->whereNotNull('service_type')
+            ->where('service_type', '!=', '')
             ->pluck('service_type')
             ->toArray();
 
@@ -235,6 +237,8 @@ class FileProcessController extends Controller
             $serviceTypes = DB::table('marking_data')
                 ->select('service_type')
                 ->distinct()
+                ->whereNotNull('service_type')
+                ->where('service_type', '!=', '')
                 ->pluck('service_type')
                 ->toArray();
 
@@ -401,8 +405,11 @@ class FileProcessController extends Controller
             $serviceTypes = DB::table('marking_data')
                 ->select('service_type')
                 ->distinct()
-                ->pluck('service_type');
-            
+                ->whereNotNull('service_type')
+                ->where('service_type', '!=', '')
+                ->pluck('service_type')
+                ->toArray();
+                
             return response()->json($serviceTypes);
         } catch (\Exception $e) {
             Log::error('Error fetching service types: ' . $e->getMessage());
