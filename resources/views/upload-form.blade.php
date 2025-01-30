@@ -1206,8 +1206,7 @@
     </script>
     <!-- Tambahkan sebelum penutup </body> -->
     
-<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-<script>
+    <script>
 document.getElementById('downloadExcel').addEventListener('click', async function() {
     try {
         const mergedTable = document.getElementById('merged-table');
@@ -1260,9 +1259,6 @@ document.getElementById('downloadExcel').addEventListener('click', async functio
             combinedData.push(row);
         }
 
-        // Debug: Tampilkan URL yang digunakan
-        console.log('Sending request to:', window.location.origin + '/api/save-excel');
-
         const response = await fetch('/api/save-excel', {
             method: 'POST',
             headers: {
@@ -1272,25 +1268,17 @@ document.getElementById('downloadExcel').addEventListener('click', async functio
             body: JSON.stringify({ data: combinedData })
         });
 
-        // Debug: Log response
-        console.log('Response status:', response.status);
-        console.log('Response headers:', [...response.headers.entries()]);
-
-        // Cek content type
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('text/html')) {
-            // Jika response adalah HTML, tampilkan pesan error yang lebih informatif
-            const htmlContent = await response.text();
-            console.error('Received HTML response:', htmlContent);
-            throw new Error('Server mengembalikan halaman HTML. Kemungkinan route tidak ditemukan.');
-        }
-
-        const responseData = await response.json();
-        
+        // Cek jika status sukses
         if (response.ok) {
-            alert('File berhasil disimpan!');
+            const blob = await response.blob();
+            const link = document.createElement('a');
+            const url = window.URL.createObjectURL(blob);
+            link.href = url;
+            link.download = 'processed_data.xlsx'; // Nama file yang akan diunduh
+            link.click();
         } else {
-            throw new Error(responseData.error || 'Terjadi kesalahan saat menyimpan file');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Terjadi kesalahan saat menyimpan file');
         }
     } catch (error) {
         console.error('Error detail:', error);
@@ -1298,5 +1286,6 @@ document.getElementById('downloadExcel').addEventListener('click', async functio
     }
 });
 </script>
+
 </body>
 </html>
