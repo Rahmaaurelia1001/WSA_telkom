@@ -21,9 +21,45 @@
     </style>
 </head>
 <body class="bg-gray-100">
+
+<div class="bg-white shadow-md flex justify-between items-center px-6 py-3 sticky top-0 z-50">
+    <img src="/images/logo-telkom.png" alt="Telkom Indonesia" class="h-10">
+    <div class="relative flex items-center space-x-2">
+        <div class="bg-gray-300 rounded-full p-2">
+            <img src="/images/user.png" alt="User" class="w-6 h-6 text-gray-600">
+        </div>
+        <span class="text-gray-600 font-medium">{{ auth()->user()->name }}</span>
+
+        <!-- Dropdown untuk Histori dan Logout -->
+        <div class="relative">
+            <button class="bg-gray-200 text-gray-600 p-2 rounded-full hover:bg-gray-300 focus:outline-none" id="dropdownMenuButton">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div class="dropdown-menu absolute right-0 mt-2 w-48 bg-white shadow-md rounded-lg p-2 hidden" id="dropdownMenu">
+                <a href="{{ route('profile') }}" class="block px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-md">
+                    Lihat Profil
+                </a>
+                <a href="{{ route('history') }}" class="block px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-md">
+                    Lihat Histori
+                </a>
+                <form action="{{ route('logout') }}" method="POST" class="block">
+                    @csrf
+                    <button type="submit" class="w-full text-left px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-md">
+                        Logout
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
     <div class="container mx-auto mt-auto p-20">
-        <div class="bg-white shadow-md rounded-lg p-12 max-w-3xl mx-auto">
-            <h1 class="text-2xl font-bold mb-6 text-center">Unggah dan Gabungkan File</h1>
+        <div class="bg-white shadow-md rounded-2xl p-16 max-w-3xl mx-auto min-h-[500px]">
+            <h1 class="text-3xl font-bold mb-6 text-center">Unggah dan Gabungkan File</h1>
 
             @if(session('success_message'))
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
@@ -44,27 +80,28 @@
             <form action="{{ route('upload.process') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="mb-4">
-                    <label class="block text-lg font-medium mb-2">File Semua Tiket:</label>
-                    <input type="file" name="all_ticket" class="border rounded w-full p-2" accept=".xlsx,.xls" required>
+                    <label class="block text-lg font-medium mb-2">All Ticket List:</label>
+                    <input type="file" name="all_ticket" class="border rounded w-full p-4 text-lg" accept=".xlsx,.xls" required>
                 </div>
                 <div class="mb-6">
-                    <label class="block text-lg font-medium mb-2">File Tiket Ditutup:</label>
-                    <input type="file" name="close_ticket" class="border rounded w-full p-2" accept=".xlsx,.xls" required>
+                    <label class="block text-lg font-medium mb-2">Closed Ticket List :</label>
+                    <input type="file" name="close_ticket" class="border rounded w-full p-4 text-lg min-h-[60px]" accept=".xlsx,.xls" required>
                 </div>
-                <button type="submit" class="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition">
-                    Proses File
+                <button type="submit" class="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition text-x1">
+                Proses File
                 </button>
-            </form>
+
         </div>
 
         @if(session('merged_data') && count(session('merged_data')) > 1)
-        <div class="mt-6 bg-white shadow-md rounded-lg p-4" style="width: 2000px; max-width: 1000px; margin: 20px auto; padding: 20px;">
-            <h2 class="text-xl font-bold mb-4 text-center">Data yang Dihapus</h2>
+        <div class="flex items-center justify-center min-h-screen">
+            <div class="bg-white shadow-lg rounded-2xl p-8" style="width: 2500px; max-width: 1200px; padding: 40px;">
+            <h2 class="text-3xl font-bold mb-6 text-center">Data yang Dihapus</h2>
             <form action="{{ route('upload.delete') }}" method="POST">
                 @csrf
                 <div class="mb-4">
                     <label class="block text-lg font-medium mb-2">Pilih Kolom:</label>
-                    <select name="column" id="column-select" class="border rounded w-full p-2" required>
+                    <select name="column" id="column-select" class="border rounded w-full p-4 text-lg" required>
                         @foreach(session('header') as $header)
                             <option value="{{ $header }}">{{ $header }}</option>
                         @endforeach
@@ -72,27 +109,28 @@
                 </div>
                 <div class="mb-4">
                     <label class="block text-lg font-medium mb-2">Pilih Nilai:</label>
-                    <div id="checkbox-container" class="grid grid-cols-5 gap-2 overflow-y-auto max-h-60 border border-gray-300 p-3 rounded">
+                    <div id="checkbox-container" class="grid grid-cols-5 gap-4 overflow-y-auto max-h-60 border border-gray-300 p-4 rounded">
                     </div>
                     <button type="submit" class="w-auto bg-red-600 text-white py-1 px-4 rounded hover:bg-red-700 transition mt-4 float-right">
                         Hapus Data
                     </button>
                 </div>
             </form>
+            </div>
         </div>
 
 
-            <div class="bg-white shadow-md rounded-lg p-6 mt-10" style="width: 100vw; margin-left: calc(-50vw + 50%); padding-left: 20px; padding-right: 20px;">
-                <h2 class="text-xl font-bold mb-4 text-center">Data yang Digabungkan</h2>
+        <div class="bg-white shadow-md rounded-lg p-6 mt-10" style="width: 90vw; margin-left: calc(-45vw + 50%); padding-left: 24px; padding-right: 24px;">
+                <h2 class="text-3xl font-bold mb-6 text-center">Data yang Digabungkan</h2>
                 <p class="text-gray-700 text-center mb-4">
                     Jumlah Baris Data: <strong>{{ $rowCount }}</strong>
                 </p>
                 <div class="overflow-x-auto overflow-y-auto max-h-screen">
-                    <table id="merged-table" class="table-auto w-full border-collapse border border-gray-300">
-                        <thead class="bg-gray-200">
+                    <table id="merged-table" class="table-auto w-full border-collapse border border-gray-300 ">
+                        <thead class="bg-red-600">
                             <tr>
                                 @foreach(session('header') as $header)
-                                    <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700 sticky top-0 bg-gray-200 z-10">
+                                    <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-white sticky top-0 bg-red-600 z-10">
                                         {{ $header }}
                                     </th>
                                 @endforeach
@@ -102,64 +140,64 @@
                             @foreach(session('merged_data') as $row)
                                 <tr class="hover:bg-gray-50">
                                     @foreach($row as $cell)
-                                        <td class="border border-gray-300 px-4 py-2 text-center text-sm text-gray-600">{{ $cell }}</td>
+                                        <td class="border border-gray-300 px-4 py-2 text-justify text-sm text-gray-600">{{ $cell }}</td>
                                     @endforeach
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
+                <button id="process-booking-date" class="mt-8 w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition">
+                Proses Data
+                </button>
             </div>
 
-            <button id="process-booking-date" class="mt-4 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
-                Proses Data
-            </button>
 
-            <div id="booking-date-table" class="bg-white shadow-md rounded-lg p-6 mt-10" style="width: 100vw; margin-left: calc(-50vw + 50%); padding-left: 20px; padding-right: 20px;">
-                <h3 class="text-lg font-semibold text-center mb-4">Hasil Proses Data</h3>
+            <div id="booking-date-table" class="bg-white shadow-md rounded-lg p-6 mt-10" style="width: 90vw; margin-left: calc(-45vw + 50%); padding-left: 24px; padding-right: 24px;">
+                <h3 class="text-3xl font-bold text-center mb-4">Hasil Proses Data</h3>
                 <div class="overflow-x-auto overflow-y-auto max-h-96">
                     <table  id="booking-date-table" class="table-auto w-full border-collapse border border-gray-300">
                         <thead class="sticky top-0 bg-gray-200">
                             <tr>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #CAEDFB; color: Black;">BOOKING DATE</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #CAEDFB; color: Black;">DURASI MANJA </th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #CAEDFB; color: Black;">TODAY WO</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #CAEDFB; color: Black;">JAM MANJA</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #CAEDFB; color: Black;">DURASI TIKET</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">REG-1</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">SERVICE TYPE?</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">CUSTOMER SEGMENT (PL-TSEL)</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">CUSTOMER ONLY</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">CLASSIFICATION (TECH ONLY)</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">VALID TICKET GRUP</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">PDA</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">NOT GUARANTEE</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TIKET AKTIF</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">GUARANTEE</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">CLOSED</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #FFFF00; color: Black;">FILTER ASSURANCE</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #FFFF00; color: Black;" >ASSURANCE CLOSE</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">HVC DIAMOND</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">GRUP DIAMOND</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">HVC PLATINUM</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">GRUP PLATINUM</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">NON HVC</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">GRUP NON HVC</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700" style="background-color: #CAEDFB; color: Black;">FCR</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TTR RESOLVED dari OPEN</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">Manja</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">TTR RESOLVED dari MANJA</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">VALID CLOSE</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">COMPLY TTR 3 Jam Manja</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">COMPLY TTR 3 Diamond</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">COMPLY TTR 3 Platinum</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">COMPLY TTR 3 Non HVC</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">CLOSED HI</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">IS MANJA</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">SISA DURASI</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">GRUP DURASI SISA ORDER TTR OPEN</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">IS NOT GAMAS</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">IS DUPLICATE</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #CAEDFB; color: Black;">BOOKING DATE</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #CAEDFB; color: Black;">DURASI MANJA </th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #CAEDFB; color: Black;">TODAY WO</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #CAEDFB; color: Black;">JAM MANJA</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #CAEDFB; color: Black;">DURASI TIKET</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">REG-1</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">SERVICE TYPE?</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">CUSTOMER SEGMENT (PL-TSEL)</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">CUSTOMER ONLY</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">CLASSIFICATION (TECH ONLY)</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">VALID TICKET GRUP</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">PDA</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">NOT GUARANTEE</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">TIKET AKTIF</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">GUARANTEE</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">CLOSED</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #FFFF00; color: Black;">FILTER ASSURANCE</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #FFFF00; color: Black;" >ASSURANCE CLOSE</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">HVC DIAMOND</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">GRUP DIAMOND</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">HVC PLATINUM</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">GRUP PLATINUM</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">NON HVC</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">GRUP NON HVC</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #CAEDFB; color: Black;">FCR</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">TTR RESOLVED dari OPEN</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">Manja</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">TTR RESOLVED dari MANJA</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">VALID CLOSE</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">COMPLY TTR 3 Jam Manja</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">COMPLY TTR 3 Diamond</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">COMPLY TTR 3 Platinum</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">COMPLY TTR 3 Non HVC</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">CLOSED HI</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">IS MANJA</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">SISA DURASI</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">GRUP DURASI SISA ORDER TTR OPEN</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">IS NOT GAMAS</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center text-sm font-bold text-gray-700" style="background-color: #D51100; color: White;">IS DUPLICATE</th>
                             </tr>
                         </thead>
                         <tbody id="booking-date-tbody">
@@ -167,23 +205,16 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="mt-4">
+                        <button id="downloadExcel" class="mt-8 w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition">
+                            Download Excel
+                        </button>
+                </div>
             </div>
-
-            <button 
-    onclick="window.location.href='{{ url('/dashboardUser') }}'" 
-    class="mt-4 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
-    Tampilkan Dashboard
-</button>
         @endif
     </div>
-    <div class="mt-4">
-    <button id="downloadExcel" class="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded">
-        Download Excel
-    </button>
-</div>
-
-
-    <script>
+    
+<script>
         const mergedData = @json(session('merged_data', []));
         const header = @json(session('header', []));
         const serviceTypes = @json(session('service_types', []));
@@ -1203,88 +1234,99 @@
 
         columnSelect.addEventListener('change', populateCheckboxes);
         populateCheckboxes();
-    </script>
-    <!-- Tambahkan sebelum penutup </body> -->
+
+        
+</script>
     
-    <script>
-document.getElementById('downloadExcel').addEventListener('click', async function() {
-    try {
-        const mergedTable = document.getElementById('merged-table');
-        const processedTable = document.getElementById('booking-date-table');
-        
-        if (!mergedTable || !processedTable) {
-            throw new Error('Tabel tidak ditemukan!');
-        }
-
-        // Fungsi untuk mendapatkan data tabel
-        function getTableData(table) {
-            const rows = table.getElementsByTagName('tr');
-            const data = [];
+<script>
+    document.getElementById('downloadExcel').addEventListener('click', async function() {
+        try {
+            const mergedTable = document.getElementById('merged-table');
+            const processedTable = document.getElementById('booking-date-table');
             
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                const rowData = [];
-                const cells = row.getElementsByTagName('td');
-                const headers = row.getElementsByTagName('th');
-                
-                if (headers.length > 0) {
-                    for (let j = 0; j < headers.length; j++) {
-                        rowData.push(headers[j].textContent.trim());
-                    }
-                }
-                
-                if (cells.length > 0) {
-                    for (let j = 0; j < cells.length; j++) {
-                        rowData.push(cells[j].textContent.trim());
-                    }
-                }
-                
-                if (rowData.length > 0) {
-                    data.push(rowData);
-                }
+            if (!mergedTable || !processedTable) {
+                throw new Error('Tabel tidak ditemukan!');
             }
-            return data;
-        }
 
-        const mergedData = getTableData(mergedTable);
-        const processedData = getTableData(processedTable);
-        
-        const combinedData = [];
-        const maxRows = Math.max(mergedData.length, processedData.length);
-        
-        for (let i = 0; i < maxRows; i++) {
-            const row = [];
-            if (mergedData[i]) row.push(...mergedData[i]);
-            if (processedData[i]) row.push(...processedData[i]);
-            combinedData.push(row);
-        }
+            // Generate filename with current date and time
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const hour = String(now.getHours()).padStart(2, '0');
+            
+            // Format: Report TTR WSA - DDMMYYYY - HH.00 Wib
+            const filename = `Report TTR WSA - ${day}${month}${year} - ${hour}.00 Wib.xlsx`;
 
-        const response = await fetch('/api/save-excel', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-            },
-            body: JSON.stringify({ data: combinedData })
-        });
+            // Fungsi untuk mendapatkan data tabel
+            function getTableData(table) {
+                const rows = table.getElementsByTagName('tr');
+                const data = [];
+                
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    const rowData = [];
+                    const cells = row.getElementsByTagName('td');
+                    const headers = row.getElementsByTagName('th');
+                    
+                    if (headers.length > 0) {
+                        for (let j = 0; j < headers.length; j++) {
+                            rowData.push(headers[j].textContent.trim());
+                        }
+                    }
+                    
+                    if (cells.length > 0) {
+                        for (let j = 0; j < cells.length; j++) {
+                            rowData.push(cells[j].textContent.trim());
+                        }
+                    }
+                    
+                    if (rowData.length > 0) {
+                        data.push(rowData);
+                    }
+                }
+                return data;
+            }
 
-        // Cek jika status sukses
-        if (response.ok) {
-            const blob = await response.blob();
-            const link = document.createElement('a');
-            const url = window.URL.createObjectURL(blob);
-            link.href = url;
-            link.download = 'processed_data.xlsx'; // Nama file yang akan diunduh
-            link.click();
-        } else {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Terjadi kesalahan saat menyimpan file');
+            const mergedData = getTableData(mergedTable);
+            const processedData = getTableData(processedTable);
+            
+            const combinedData = [];
+            const maxRows = Math.max(mergedData.length, processedData.length);
+            
+            for (let i = 0; i < maxRows; i++) {
+                const row = [];
+                if (mergedData[i]) row.push(...mergedData[i]);
+                if (processedData[i]) row.push(...processedData[i]);
+                combinedData.push(row);
+            }
+
+            const response = await fetch('/api/save-excel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({ data: combinedData })
+            });
+
+            // Cek jika status sukses
+            if (response.ok) {
+                const blob = await response.blob();
+                const link = document.createElement('a');
+                const url = window.URL.createObjectURL(blob);
+                link.href = url;
+                link.download = filename; // Using our dynamic filename
+                link.click();
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Terjadi kesalahan saat menyimpan file');
+            }
+        } catch (error) {
+            console.error('Error detail:', error);
+            alert('Gagal menyimpan file. Error: ' + error.message);
         }
-    } catch (error) {
-        console.error('Error detail:', error);
-        alert('Gagal menyimpan file. Error: ' + error.message);
-    }
-});
+    });
 </script>
 
 </body>

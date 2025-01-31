@@ -79,6 +79,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/users/konstanta/{id}', [UserManagementController::class, 'deleteKonstanta'])->name('admin.data.deleteKonstanta');
         Route::put('/users/konstanta/{id}/edit2', [UserManagementController::class, 'updateKonstanta'])->name('admin.data.updateKonstanta');
         // Route::delete('/data/konstanta/{id}', [UserManagementController::class, 'deleteKonstanta'])->name('admin.data.deleteKonstanta');
+        
 
        
 
