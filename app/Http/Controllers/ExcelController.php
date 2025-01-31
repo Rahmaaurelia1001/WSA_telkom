@@ -5,84 +5,119 @@ use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Calculation\Calculation;
 
 class ExcelController extends Controller
 {
     public function saveExcel(Request $request)
     {
-        ini_set('max_execution_time', 300); // 300 seconds (5 minutes)
-        ini_set('memory_limit', '512M'); // 512 MB of memory limit
+        // Optimasi 1: Setting memory dan execution time
+        ini_set('memory_limit', '512M');
+        ini_set('max_execution_time', 300); // 5 menit
+        
         try {
-            // ✅ Validasi request: pastikan 'data' ada dan berupa array
             $request->validate([
                 'data' => 'required|array|min:1'
             ]);
     
             $data = $request->input('data');
-    
-            // 🔍 Debug log untuk melihat data yang masuk
-            Log::info('Menerima data untuk Excel:', ['data' => $data]);
-    
-            // ❌ Cek jika data kosong (berisi array kosong)
-            if (empty($data)) {
-                return response()->json(['error' => 'Data kosong, tidak bisa diproses!'], 400);
-            }
-    
-            // 📁 Tentukan path file Excel yang sudah ada di storage
-            $filename = 'Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx'; // Nama file yang sudah ada
-            $filePath = storage_path('app/' . $filename);
-    
-            // ❓ Cek apakah file ada
-            if (!file_exists($filePath)) {
-                return response()->json(['error' => 'File yang dimaksud tidak ditemukan!'], 404);
-            }
-    
-            // ✅ Muat file yang sudah ada menggunakan IOFactory
-            $spreadsheet = IOFactory::load($filePath);
-    
-            // Akses sheet pertama (sheet1)
-            $sheet1 = $spreadsheet->getSheet(0); // Sheet pertama
-    
-            // 🧹 Bersihkan isi sheet pertama dengan menuliskan nilai kosong pada seluruh cell
-            $highestRow = $sheet1->getHighestRow();
-            $highestColumn = $sheet1->getHighestColumn();
-    
-            // Loop untuk menghapus konten di setiap cell
-            for ($row = 1; $row <= $highestRow; $row++) {
-                for ($col = 'A'; $col <= $highestColumn; $col++) {
-                    $sheet1->setCellValue($col . $row, null);  // Mengosongkan cell
-                }
-            }
-    
-            // 📄 Masukkan data baru ke dalam sheet pertama
-            foreach ($data as $rowIndex => $row) {
-                foreach ($row as $colIndex => $value) {
-                    $cellCoordinate = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex + 1) . ($rowIndex + 1);
-                    $sheet1->setCellValue($cellCoordinate, $value);
-                }
-            }
-    
-            // 📁 Tentukan path penyimpanan file yang diperbarui
-            $newFilePath = storage_path('app/public/processed_data_' . now()->format('Ymd_His') . '.xlsx');
             
-            // 💾 Simpan file yang sudah diperbarui
-            $writer = new Xlsx($spreadsheet);
-            $writer->save($newFilePath);
-    
-            // 🖥️ Kirim file yang sudah diproses langsung ke pengguna
-            return response()->download($newFilePath)->deleteFileAfterSend(true); // Hapus file setelah dikirim
-    
+            if (empty($data)) {
+                return response()->json(['error' => 'Data kosong!'], 400);
+            }
+
+            // Optimasi 2: Konfigurasi garbage collector
+            gc_enable();
+            gc_collect_cycles();
+
+            // Load file Excel dengan format
+            $filename = 'Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx';
+            $filePath = storage_path('app/' . $filename);
+            
+            // Optimasi 3: Konfigurasi reader
+            $reader = IOFactory::createReader('Xlsx');
+            $reader->setReadEmptyCells(false); // Abaikan cell kosong
+            $spreadsheet = $reader->load($filePath);
+            
+            // Akses sheet pertama
+            $sheet = $spreadsheet->getSheet(0);
+            
+            // Optimasi 4: Nonaktifkan perhitungan formula
+            Calculation::getInstance($spreadsheet)->disableCalculationCache();
+            
+            Log::info('Mulai menghapus data lama');
+            $highestRow = $sheet->getHighestRow();
+            $highestColumn = $sheet->getHighestColumn();
+            
+            // Optimasi 5: Batch processing untuk penghapusan
+            $batchSize = 1000;
+            for ($row = 1; $row <= $highestRow; $row += $batchSize) {
+                $endRow = min($row + $batchSize - 1, $highestRow);
+                $range = 'A' . $row . ':' . $highestColumn . $endRow;
+                
+                foreach ($sheet->getRowIterator($row, $endRow) as $rowIterator) {
+                    foreach ($rowIterator->getCellIterator() as $cell) {
+                        $cell->setValue(null);
+                    }
+                }
+                
+                if ($row % 5000 == 0) {
+                    gc_collect_cycles();
+                }
+            }
+            
+            Log::info('Mulai menulis data baru');
+            // Optimasi 6: Chunk processing untuk penulisan data
+            $chunkSize = 1000;
+            foreach (array_chunk($data, $chunkSize) as $chunkIndex => $chunk) {
+                foreach ($chunk as $rowIndex => $rowData) {
+                    $actualRowIndex = ($chunkIndex * $chunkSize) + $rowIndex + 1;
+                    foreach ($rowData as $columnIndex => $value) {
+                        $columnLetter = Coordinate::stringFromColumnIndex($columnIndex + 1);
+                        $sheet->setCellValue($columnLetter . $actualRowIndex, $value);
+                    }
+                }
+                
+                if ($chunkIndex % 5 == 0) {
+                    gc_collect_cycles();
+                }
+            }
+            
+            // Optimasi 7: Konfigurasi writer
+            $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+            $writer->setPreCalculateFormulas(false);
+            
+            // Header untuk streaming
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+            header('Expires: 0');
+            header('Pragma: public');
+            
+            // Buffer handling
+            if (ob_get_length()) ob_end_clean();
+            
+            // Tulis file
+            $writer->save('php://output');
+            
+            // Cleanup
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+            gc_collect_cycles();
+            
+            exit;
+
         } catch (\Exception $e) {
-            // 🔥 Log error untuk debugging
-            Log::error('Gagal menyimpan Excel:', ['error' => $e->getMessage()]);
+            Log::error('Gagal menyimpan Excel:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             
             return response()->json([
-                'error' => 'Terjadi kesalahan saat menyimpan file. Cek log untuk detailnya.'
+                'error' => 'Terjadi kesalahan saat menyimpan file: ' . $e->getMessage()
             ], 500);
         }
     }
-    
 }
