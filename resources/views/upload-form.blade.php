@@ -214,7 +214,7 @@
         @endif
     </div>
     
-    <script>
+<script>
         const mergedData = @json(session('merged_data', []));
         const header = @json(session('header', []));
         const serviceTypes = @json(session('service_types', []));
@@ -1234,88 +1234,99 @@
 
         columnSelect.addEventListener('change', populateCheckboxes);
         populateCheckboxes();
-    </script>
-    <!-- Tambahkan sebelum penutup </body> -->
+
+        
+</script>
     
-    <script>
-document.getElementById('downloadExcel').addEventListener('click', async function() {
-    try {
-        const mergedTable = document.getElementById('merged-table');
-        const processedTable = document.getElementById('booking-date-table');
-        
-        if (!mergedTable || !processedTable) {
-            throw new Error('Tabel tidak ditemukan!');
-        }
-
-        // Fungsi untuk mendapatkan data tabel
-        function getTableData(table) {
-            const rows = table.getElementsByTagName('tr');
-            const data = [];
+<script>
+    document.getElementById('downloadExcel').addEventListener('click', async function() {
+        try {
+            const mergedTable = document.getElementById('merged-table');
+            const processedTable = document.getElementById('booking-date-table');
             
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                const rowData = [];
-                const cells = row.getElementsByTagName('td');
-                const headers = row.getElementsByTagName('th');
-                
-                if (headers.length > 0) {
-                    for (let j = 0; j < headers.length; j++) {
-                        rowData.push(headers[j].textContent.trim());
-                    }
-                }
-                
-                if (cells.length > 0) {
-                    for (let j = 0; j < cells.length; j++) {
-                        rowData.push(cells[j].textContent.trim());
-                    }
-                }
-                
-                if (rowData.length > 0) {
-                    data.push(rowData);
-                }
+            if (!mergedTable || !processedTable) {
+                throw new Error('Tabel tidak ditemukan!');
             }
-            return data;
-        }
 
-        const mergedData = getTableData(mergedTable);
-        const processedData = getTableData(processedTable);
-        
-        const combinedData = [];
-        const maxRows = Math.max(mergedData.length, processedData.length);
-        
-        for (let i = 0; i < maxRows; i++) {
-            const row = [];
-            if (mergedData[i]) row.push(...mergedData[i]);
-            if (processedData[i]) row.push(...processedData[i]);
-            combinedData.push(row);
-        }
+            // Generate filename with current date and time
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const hour = String(now.getHours()).padStart(2, '0');
+            
+            // Format: Report TTR WSA - DDMMYYYY - HH.00 Wib
+            const filename = `Report TTR WSA - ${day}${month}${year} - ${hour}.00 Wib.xlsx`;
 
-        const response = await fetch('/api/save-excel', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-            },
-            body: JSON.stringify({ data: combinedData })
-        });
+            // Fungsi untuk mendapatkan data tabel
+            function getTableData(table) {
+                const rows = table.getElementsByTagName('tr');
+                const data = [];
+                
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    const rowData = [];
+                    const cells = row.getElementsByTagName('td');
+                    const headers = row.getElementsByTagName('th');
+                    
+                    if (headers.length > 0) {
+                        for (let j = 0; j < headers.length; j++) {
+                            rowData.push(headers[j].textContent.trim());
+                        }
+                    }
+                    
+                    if (cells.length > 0) {
+                        for (let j = 0; j < cells.length; j++) {
+                            rowData.push(cells[j].textContent.trim());
+                        }
+                    }
+                    
+                    if (rowData.length > 0) {
+                        data.push(rowData);
+                    }
+                }
+                return data;
+            }
 
-        // Cek jika status sukses
-        if (response.ok) {
-            const blob = await response.blob();
-            const link = document.createElement('a');
-            const url = window.URL.createObjectURL(blob);
-            link.href = url;
-            link.download = 'processed_data.xlsx'; // Nama file yang akan diunduh
-            link.click();
-        } else {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Terjadi kesalahan saat menyimpan file');
+            const mergedData = getTableData(mergedTable);
+            const processedData = getTableData(processedTable);
+            
+            const combinedData = [];
+            const maxRows = Math.max(mergedData.length, processedData.length);
+            
+            for (let i = 0; i < maxRows; i++) {
+                const row = [];
+                if (mergedData[i]) row.push(...mergedData[i]);
+                if (processedData[i]) row.push(...processedData[i]);
+                combinedData.push(row);
+            }
+
+            const response = await fetch('/api/save-excel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({ data: combinedData })
+            });
+
+            // Cek jika status sukses
+            if (response.ok) {
+                const blob = await response.blob();
+                const link = document.createElement('a');
+                const url = window.URL.createObjectURL(blob);
+                link.href = url;
+                link.download = filename; // Using our dynamic filename
+                link.click();
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Terjadi kesalahan saat menyimpan file');
+            }
+        } catch (error) {
+            console.error('Error detail:', error);
+            alert('Gagal menyimpan file. Error: ' + error.message);
         }
-    } catch (error) {
-        console.error('Error detail:', error);
-        alert('Gagal menyimpan file. Error: ' + error.message);
-    }
-});
+    });
 </script>
 
 </body>
