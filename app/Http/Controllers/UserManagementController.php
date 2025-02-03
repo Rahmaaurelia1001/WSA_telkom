@@ -33,9 +33,12 @@ class UserManagementController extends Controller
     }
     public function updateKonstanta(Request $request, $id)
     {
+
+        Log::info('Data yang diterima:', $request->all()); // Log semua data dari form
+
         // Validasi input dari form
         $request->validate([
-            'column' => 'required|string|in:service_type,customer_type,customer_segment,status,classification,status_closed,marking_type',
+            'column' => 'required|string|in:service_type,customer_type,customer_segment,status,classification,status_closed,marking_type,z,segmen,closed_reopen_by,ttr,',
             'value' => 'required|string|max:255',
             'marking_type' => 'required|string|in:type1,type2,type3', // Validasi marking_type
         ]);

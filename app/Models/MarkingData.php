@@ -22,5 +22,6 @@ class MarkingData extends Model
         'status_closed',
         'closed_reopen_by',
         'ttr',
+        'z',
     ];
 }

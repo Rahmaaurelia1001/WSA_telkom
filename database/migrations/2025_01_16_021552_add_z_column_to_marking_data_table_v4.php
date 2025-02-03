@@ -9,7 +9,7 @@ class AddZColumnToMarkingDataTableV4 extends Migration
     public function up()
     {
         Schema::table('marking_data', function (Blueprint $table) {
-            $table->string('z')->default('guarantee'); // Menambahkan kolom z dengan default 'guarantee'
+            $table->string('z')->nullable(); // Mengizinkan NULL dan tidak memiliki default
         });
     }
 
