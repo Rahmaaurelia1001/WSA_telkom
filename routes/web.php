@@ -7,6 +7,10 @@ use App\Http\Controllers\FileProcessController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\DashboardUserController;
 use App\Http\Controllers\ExcelController;  // Mengimport controller
+use App\Http\Controllers\HistoryController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\ExcelDownloadController;  // Mengimport controller
+
 
 // Redirect default ke login
 Route::get('/', function () {
@@ -24,9 +28,11 @@ Route::middleware(['auth'])->group(function () {
     // Dashboard untuk user
     Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
     Route::get('/dashboardUser', [DashboardUserController::class, 'dashboardUser'])->name('dashboardUser');
-;
+    Route::get('/history', [HistoryController::class, 'history'])->name('history');
+    Route::get('/users', [UserController::class,'user'])->name('user');
+    Route::get('/history', [UserController::class, 'history'])->name('history');
+    Route::post('/api/download-excel', [ExcelController::class, 'downloadExcel']);
     
-
     // Halaman dashboard untuk admin
     // Route::middleware(['auth', 'role:admin'])->group(function () {
     //     Route::get('admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
@@ -47,6 +53,8 @@ Route::middleware(['auth'])->group(function () {
         // Route::post('/download-excel', [ExcelController::class, 'downloadExcel']);
         // routes/web.php
         Route::post('/api/save-excel', [ExcelController::class, 'saveExcel']);
+        Route::get('/api/download-excel', [ExcelController::class, 'downloadExcel']);
+
         
     // });    
 
@@ -79,7 +87,17 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/users/konstanta/{id}', [UserManagementController::class, 'deleteKonstanta'])->name('admin.data.deleteKonstanta');
         Route::put('/users/konstanta/{id}/edit2', [UserManagementController::class, 'updateKonstanta'])->name('admin.data.updateKonstanta');
         // Route::delete('/data/konstanta/{id}', [UserManagementController::class, 'deleteKonstanta'])->name('admin.data.deleteKonstanta');
-        
+        Route::get('/excel', [ExcelController::class, 'index'])->name('excel.index');
+        Route::resource('excel', ExcelController::class);
+        // Route::get('export/{fileId}', [ExcelController::class, 'export'])->name('export');
+        // Route::delete('delete/{id}', [ExcelController::class, 'destroy'])->name('destroy');
+
+        // Route::prefix('excel')->group(function () {
+        //     Route::get('/', [ExcelController::class, 'index'])->name('excel.index');
+        //     Route::post('/save', [ExcelController::class, 'saveExcel'])->name('excel.save');
+        Route::get('/download/{id}', [ExcelController::class, 'downloadFromDatabase'])->name('excel.download');
+        //     Route::get('/stream/{id}', [ExcelController::class, 'streamFromDatabase'])->name('excel.stream');
+        Route::delete('/excel/{id}', [ExcelController::class, 'destroy'])->name('excel.destroy');        // });
 
        
 

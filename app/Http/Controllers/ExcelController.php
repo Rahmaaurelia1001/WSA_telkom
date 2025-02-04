@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Calculation\Calculation;
+use Illuminate\Support\Facades\DB; // Tambahkan baris ini
+use Carbon\Carbon; // Jika Anda menggunakan Carbon
+use Illuminate\Support\Facades\Auth; // Untuk autentikasi
+use App\Models\ExcelDownload;
 
 class ExcelController extends Controller
 {
@@ -20,21 +24,32 @@ class ExcelController extends Controller
             $request->validate([
                 'data' => 'required|array|min:1'
             ]);
-    
+
             $data = $request->input('data');
             
             if (empty($data)) {
                 return response()->json(['error' => 'Data kosong!'], 400);
             }
 
-            $now = now();
-            $hour = $now->format('H');
-            
+            $now = Carbon::now('Asia/Jakarta');
+            $hour = $now->format('H'); // Ini akan mengambil jam aktual di Jakarta
+
             $filename = sprintf(
                 'Report TTR WSA - %s - %s.00 Wib.xlsx',
                 $now->format('dmY'),
                 $hour
             );
+
+            $now = Carbon::now('Asia/Jakarta');
+
+        $downloadRecord = DB::table('excel_downloads')->insertGetId([
+            'filename' => $filename,
+            'merged_data' => json_encode($data),
+            'processed_data' => json_encode($data),
+            'downloaded_by' => Auth::check() ? Auth::user()->name : 'Guest',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
 
             gc_enable();
             gc_collect_cycles();
@@ -46,49 +61,39 @@ class ExcelController extends Controller
             $reader->setReadEmptyCells(false);
             $spreadsheet = $reader->load($filePath);
             
+            // Ambil Sheet 1 untuk diisi dengan data
+            $sheet1 = $spreadsheet->getSheet(0);
+            
+            // Update tanggal dan jam di Sheet 3
             $sheet3 = $spreadsheet->getSheet(1);
             
             $timezone = new \DateTimeZone('Asia/Jakarta');
             $now = new \DateTime('now', $timezone);  
             $currentDate = $now->format('d/m/Y');
-            $currentHour = $now->format('H') . '.00 WIB';  // Menggunakan objek DateTime untuk mendapatkan jam saat ini
+            $currentHour = $now->format('H') . '.00 WIB';
 
             $highestRow = $sheet3->getHighestRow();
             for ($row = 1; $row <= $highestRow; $row++) {
                 $cellValue = $sheet3->getCell('A' . $row)->getValue();
                 if (strpos($cellValue, 'posisi') !== false) {
-                    // Pola regex yang diperbaiki untuk format bahasa Indonesia
-                    $pattern = '#posisi \d{2}/\d{2}/\d{4} pukul \d{2}\.\d{2} WIB#'; // Pola untuk format waktu
+                    $pattern = '#posisi \d{2}/\d{2}/\d{4} pukul \d{2}\.\d{2} WIB#';
                     $replacement = "posisi {$currentDate} pukul {$currentHour}";
                     $newValue = preg_replace($pattern, $replacement, $cellValue);
                     $sheet3->setCellValue('A' . $row, $newValue);
                 }
             }
 
-            // $now = new \DateTime();  // Inisialisasi DateTime untuk waktu saat ini
-            // $timezone = new \DateTimeZone('Asia/Jakarta');  // Tentukan zona waktu WIB
-            // $now->setTimezone($timezone);  // Pastikan waktu diambil sesuai zona waktu WIB
-            // $currentDate = $now->format('d/m/Y');
-            // $currentHour = $now->format('H') . '.00 WIB';  // Menggunakan format jam 24 jam, misalnya 15.00 WIB
+            // Mulai isi data di Sheet 1 dari baris ke-2 (asumsikan baris pertama adalah header)
+            $startRow = 2;
+            foreach ($data as $rowData) {
+                $col = 'A';
+                foreach ($rowData as $cellValue) {
+                    $sheet1->setCellValue($col . $startRow, $cellValue);
+                    $col++;
+                }
+                $startRow++;
+            }
 
-            // $highestRow = $sheet3->getHighestRow();  // Mengetahui baris terakhir yang terisi
-            // $highestColumn = $sheet3->getHighestColumn();  // Dapatkan kolom terakhir
-            // for ($row = 1; $row <= $highestRow; $row++) {
-            //     for ($col = 'A'; $col <= $highestColumn; $col++) {
-            //         $cellValue = $sheet3->getCell($col . $row)->getFormattedValue();
-            //         Log::info("Cell Value (Row: $row, Column: $col): $cellValue");
-
-            //         if (strpos($cellValue, 'Update:') !== false) {
-            //             $pattern = '#Update: \d{2} [A-Za-z]+ \d{4} Pkl \d{2}[:\.]\d{2}#';
-            //             $replacement = "Update: {$currentDate} Pkl {$currentHour}";
-            //             $newValue = preg_replace($pattern, $replacement, $cellValue);
-            //             Log::info("Updated Value (Row: $row, Column: $col): $newValue");
-            //             $sheet3->setCellValue($col . $row, $newValue);
-            //         }
-            //     }
-            // }
-      
-            $sheet = $spreadsheet->getSheet(0);
             Calculation::getInstance($spreadsheet)->disableCalculationCache();
 
             $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
@@ -118,6 +123,166 @@ class ExcelController extends Controller
             
             return response()->json([
                 'error' => 'Terjadi kesalahan saat menyimpan file: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function index()
+    {
+        // Ambil daftar file Excel dengan pagination
+        $excelFiles = ExcelDownload::orderBy('created_at', 'desc')
+            ->paginate(10); // 10 item per halaman
+
+        return view('list-excel', [
+            'excelFiles' => $excelFiles
+        ]);
+    }
+
+    public function download($id)
+    {
+        $excelDownload = ExcelDownload::findOrFail($id);
+
+        // Buat ulang file Excel dari data tersimpan
+        $now = now();
+        $hour = $now->format('H');
+        
+        $filename = $excelDownload->filename;
+
+        $templateFile = 'Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx';
+        $filePath = storage_path('app/' . $templateFile);
+        
+        $reader = IOFactory::createReader('Xlsx');
+        $reader->setReadEmptyCells(false);
+        $spreadsheet = $reader->load($filePath);
+        
+        // Ambil Sheet 1 untuk diisi dengan data
+        $sheet1 = $spreadsheet->getSheet(0);
+        
+        // Rekonstruksi data dari JSON
+        $data = json_decode($excelDownload->merged_data, true);
+
+        // Mulai isi data di Sheet 1 dari baris ke-2 
+        $startRow = 2;
+        foreach ($data as $rowData) {
+            $col = 'A';
+            foreach ($rowData as $cellValue) {
+                $sheet1->setCellValue($col . $startRow, $cellValue);
+                $col++;
+            }
+            $startRow++;
+        }
+
+        $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+        
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        header('Expires: 0');
+        header('Pragma: public');
+        
+        $writer->save('php://output');
+        exit;
+    }
+
+    public function destroy($id)
+    {
+        try {
+            $excelDownload = ExcelDownload::findOrFail($id);
+            $excelDownload->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'File berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function downloadFromDatabase($id)
+    {
+        try {
+            // Cari record download berdasarkan ID
+            $excelDownload = ExcelDownload::findOrFail($id);
+
+            gc_enable();
+            gc_collect_cycles();
+
+            $templateFile = 'Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx';
+            $filePath = storage_path('app/' . $templateFile);
+            
+            $reader = IOFactory::createReader('Xlsx');
+            $reader->setReadEmptyCells(false);
+            $spreadsheet = $reader->load($filePath);
+            
+            // Ambil Sheet 1 untuk diisi dengan data
+            $sheet1 = $spreadsheet->getSheet(0);
+            
+            // Update tanggal dan jam di Sheet 3
+            $sheet3 = $spreadsheet->getSheet(1);
+            
+            $timezone = new \DateTimeZone('Asia/Jakarta');
+            $now = new \DateTime('now', $timezone);  
+            $currentDate = $now->format('d/m/Y');
+            $currentHour = $now->format('H') . '.00 WIB';
+
+            $highestRow = $sheet3->getHighestRow();
+            for ($row = 1; $row <= $highestRow; $row++) {
+                $cellValue = $sheet3->getCell('A' . $row)->getValue();
+                if (strpos($cellValue, 'posisi') !== false) {
+                    $pattern = '#posisi \d{2}/\d{2}/\d{4} pukul \d{2}\.\d{2} WIB#';
+                    $replacement = "posisi {$currentDate} pukul {$currentHour}";
+                    $newValue = preg_replace($pattern, $replacement, $cellValue);
+                    $sheet3->setCellValue('A' . $row, $newValue);
+                }
+            }
+
+            // Rekonstruksi data dari JSON
+            $data = json_decode($excelDownload->merged_data, true);
+
+            // Mulai isi data di Sheet 1 dari baris ke-2 
+            $startRow = 2;
+            foreach ($data as $rowData) {
+                $col = 'A';
+                foreach ($rowData as $cellValue) {
+                    $sheet1->setCellValue($col . $startRow, $cellValue);
+                    $col++;
+                }
+                $startRow++;
+            }
+
+            Calculation::getInstance($spreadsheet)->disableCalculationCache();
+
+            $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+            $writer->setPreCalculateFormulas(false);
+            
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="' . $excelDownload->filename . '"');
+            header('Cache-Control: max-age=0');
+            header('Expires: 0');
+            header('Pragma: public');
+            
+            if (ob_get_length()) ob_end_clean();
+            
+            $writer->save('php://output');
+            
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+            gc_collect_cycles();
+            
+            exit;
+
+        } catch (\Exception $e) {
+            Log::error('Gagal download Excel dari database:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'Terjadi kesalahan saat download file: ' . $e->getMessage()
             ], 500);
         }
     }
