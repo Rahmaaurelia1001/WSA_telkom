@@ -7,6 +7,8 @@ use App\Models\MarkingData; // Tambahkan model MarkingData
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+
 
 class UserManagementController extends Controller
 {
@@ -31,9 +33,12 @@ class UserManagementController extends Controller
     }
     public function updateKonstanta(Request $request, $id)
     {
+
+        Log::info('Data yang diterima:', $request->all()); // Log semua data dari form
+
         // Validasi input dari form
         $request->validate([
-            'column' => 'required|string|in:service_type,customer_type,customer_segment,status,classification,status_closed,marking_type',
+            'column' => 'required|string|in:service_type,customer_type,customer_segment,status,classification,status_closed,marking_type,z,segmen,closed_reopen_by,ttr,',
             'value' => 'required|string|max:255',
             'marking_type' => 'required|string|in:type1,type2,type3', // Validasi marking_type
         ]);
@@ -197,20 +202,36 @@ public function deleteKonstanta($id)
         return view('admin.users.edit', compact('user'));
     }
 
-    public function update(Request $request, User $user)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-        ]);
 
-        $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-        ]);
 
-        return redirect()->route('admin.users.list')->with('success', 'User updated successfully');
+   
+
+public function update(Request $request, User $user)
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+        'password' => 'nullable|min:8', // Password opsional
+    ]);
+
+    // Simpan data yang akan diperbarui
+    $data = [
+        'name' => $request->name,
+        'email' => $request->email,
+    ];
+
+    // Jika password diisi, hash dan masukkan ke dalam array
+    if ($request->filled('password')) {
+        $data['password'] = Hash::make($request->password);
     }
+
+    // Update user
+    $user->update($data);
+
+    return redirect()->route('admin.users.list')->with('success', 'User updated successfully');
+}
+
+
     public function destroylist(User $user)
     {
         \Log::info('User to delete:', ['user_id' => $user->id, 'email' => $user->email]);

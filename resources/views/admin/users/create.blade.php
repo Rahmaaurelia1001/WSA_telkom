@@ -43,7 +43,9 @@
         <input type="password" name="password_confirmation" class="w-full p-3 mt-2 border border-gray-300 rounded-lg focus:outline-none" required>
     </div>
 
-    <button type="submit" class="w-full px-6 py-3 bg-red-500 text-white rounded-lg">Create User</button>
+    <!-- Submit Button -->
+<button type="submit" class="w-full px-6 py-3 bg-[#D50000] text-white font-semibold rounded-lg">Create User</button>
+
 </form>
 
         </div>

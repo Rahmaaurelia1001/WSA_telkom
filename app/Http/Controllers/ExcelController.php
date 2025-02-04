@@ -17,9 +17,8 @@ class ExcelController extends Controller
 {
     public function saveExcel(Request $request)
     {
-        ini_set('memory_limit', '512M');
-        ini_set('max_execution_time', 300);
-        
+        ini_set('max_execution_time', 300); // 300 seconds (5 minutes)
+        ini_set('memory_limit', '512M'); // 512 MB of memory limit
         try {
             $request->validate([
                 'data' => 'required|array|min:1'

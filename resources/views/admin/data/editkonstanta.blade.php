@@ -40,9 +40,13 @@
             <option value="service_type">Service Type</option>
             <option value="customer_type">Customer Type</option>
             <option value="customer_segment">Customer Segment</option>
+            <option value="segmen">Segment</option>
             <option value="status">Status</option>
             <option value="classification">Classification</option>
             <option value="status_closed">Status Closed</option>
+            <option value="closed_reopen_by">Closed Reopen By</option>
+            <option value="ttr">TTR</option>
+            <option value="z">z</option>
         </select>
     </div>
 
