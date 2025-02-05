@@ -32,44 +32,28 @@ class UserManagementController extends Controller
         return view('admin.data.editkonstanta', compact('konstanta'));
     }
     public function updateKonstanta(Request $request, $id)
-    {
+{
+    // Validasi input
+    $request->validate([
+        'column' => 'required|string',
+        'value' => 'required|string',
+    ]);
 
-        Log::info('Data yang diterima:', $request->all()); // Log semua data dari form
+    // Ambil data yang akan diupdate
+    $konstanta = DB::table('marking_data')->where('id', $id)->first();
 
-        // Validasi input dari form
-        $request->validate([
-            'column' => 'required|string|in:service_type,customer_type,customer_segment,status,classification,status_closed,marking_type,z,segmen,closed_reopen_by,ttr,',
-            'value' => 'required|string|max:255',
-            'marking_type' => 'required|string|in:type1,type2,type3', // Validasi marking_type
-        ]);
-    
-        // Ambil data konstanta yang ingin diupdate
-        $konstanta = MarkingData::findOrFail($id);
-    
-        // Ambil data dari form
-        $column = $request->column;
-        $value = $request->value;
-        $markingType = $request->marking_type;
-    
-        // Tentukan max_value berdasarkan marking_type
-        $maxValue = null;
-        if ($markingType == 'type1') {
-            $maxValue = 36;  // Marking 36 Jam Non HVC
-        } elseif ($markingType == 'type2' || $markingType == 'type3') {
-            // Marking Platinum atau Diamond
-            $maxValue = "";  // Tidak ada batasan
-        }
-    
-        // Update data ke dalam tabel marking_data
-        $konstanta->update([
-            $column => $value,
-            'marking_type' => $markingType,
-            'max_value' => $maxValue,
-        ]);
-    
-        // Redirect dengan pesan sukses
-        return redirect()->route('admin.data.add')->with('success', 'Konstanta berhasil diperbarui.');
+    if (!$konstanta) {
+        return redirect()->route('admin.data.add')->with('error', 'Data tidak ditemukan.');
     }
+
+    // Hanya memperbarui kolom yang dipilih
+    DB::table('marking_data')->where('id', $id)->update([
+        $request->column => $request->value,
+    ]);
+
+    return redirect()->route('admin.data.add')->with('success', 'Konstanta berhasil diperbarui.');
+}
+
     
 
 
@@ -142,46 +126,41 @@ public function deleteKonstanta($id)
     }
 
     public function store(Request $request)
-    {
-        // Validasi input form
-        $request->validate([
-            'column' => 'required|string',  // Kolom yang dipilih harus ada
-            'value' => 'required|string',   // Nilai konstanta harus ada
-            'marking_type' => 'required|string', // Marking Type harus ada
-        ]);
+{
+    // Validasi input
+    $request->validate([
+        'column' => 'required|string',
+        'value' => 'required|string',
+    ]);
 
-        // Ambil data dari request
-        $column = $request->column;  // Kolom yang dipilih dari dropdown
-        $value = $request->value;    // Nilai konstanta yang dimasukkan
-        $markingType = $request->marking_type;  // Marking type yang dipilih
+    // Ambil data dari request
+    $column = $request->column;
+    $value = $request->value;
 
-        // Menentukan nilai max_value berdasarkan marking_type (jika diperlukan)
-        $maxValue = null;
-        if ($markingType == 'type1') {
-            $maxValue = 36;  // Marking 36 Jam Non HVC
-        } elseif ($markingType == 'type2' || $markingType == 'type3') {
-            // Marking Platinum atau Diamond
-            $maxValue = "";  // Tidak ada batasan
-        }
+    // Buat array kosong untuk data yang akan disimpan
+    $data = [
+        'service_type' => null,
+        'customer_type' => null,
+        'customer_segment' => null,
+        'segmen' => null,
+        'status' => null,
+        'classification' => null,
+        'status_closed' => null,
+        'closed_reopen_by' => null,
+        'ttr' => null,
+        'marking_type' => null,
+        'z' => null,
+    ];
 
-        // Menyimpan data ke tabel marking_data
-        DB::table('marking_data')->insert([
-            $column => $value,  // Menyimpan nilai konstanta pada kolom yang dipilih
-            'marking_type' => $markingType,  // Menyimpan marking_type yang dipilih
-            'max_value' => $maxValue,  // Menyimpan max_value (jika ada)
-        ]);
+    // Hanya isi kolom yang dipilih
+    $data[$column] = $value;
 
-        // Log data setelah disimpan
-        \Log::debug("Data berhasil disimpan ke tabel marking_data:", [
-            'column' => $column,
-            'value' => $value,
-            'marking_type' => $markingType,
-            'max_value' => $maxValue
-        ]);
+    // Simpan ke database
+    DB::table('marking_data')->insert($data);
 
-        // Redirect dengan pesan sukses
-        return redirect()->route('admin.data.add')->with('success', 'Konstanta berhasil ditambahkan.');
-    }
+    return redirect()->route('admin.data.add')->with('success', 'Konstanta berhasil ditambahkan.');
+}
+
 
 
     public function destroy($id)

@@ -70,6 +70,11 @@
             Tambah Konstanta
         </button>
     </div>
+    <div class="flex justify-end mt-4">
+    <a href="{{ route('dashboard') }}" class="w-full px-6 py-3 bg-red-600 text-white rounded-lg shadow-lg hover:bg-red-700 text-center block">
+        Kembali ke Dashboard
+    </a>
+</div>
 
     
     <!-- Form Tambah Konstanta -->
@@ -107,17 +112,17 @@
             </div>
 
             <!-- Pilihan Marking Type -->
-            <div>
+            <!-- <div>
                 <label for="marking_type" class="block text-sm font-medium text-gray-700">Pilih Marking Type</label>
                 <select id="marking_type" name="marking_type" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:outline-none" required>
-                    <option value="type1">Marking 36 Jam Non HVC</option>
-                    <option value="type2">Marking Platinum</option>
-                    <option value="type3">Marking Diamond</option>
+                    <option value="1">Marking 36 Jam Non HVC</option>
+                    <option value="2">Marking Platinum</option>
+                    <option value="3">Marking Diamond</option>
                 </select>
                 @error('marking_type')
                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                 @enderror
-            </div>
+            </div> -->
 
             <!-- Tombol Simpan -->
             <!-- Tombol Simpan -->
@@ -130,11 +135,7 @@
         </form>
 
         <!-- Tombol Kembali ke Dashboard -->
-        <div class="flex justify-end mt-4">
-    <a href="{{ route('dashboard') }}" class="w-full px-6 py-3 bg-red-600 text-white rounded-lg shadow-lg hover:bg-red-700 text-center block">
-        Kembali ke Dashboard
-    </a>
-</div>
+        
 
 
     </div>

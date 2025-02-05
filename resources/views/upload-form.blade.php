@@ -205,10 +205,20 @@ document.addEventListener("DOMContentLoaded", function () {
     dropdownButton.addEventListener("touchstart", toggleDropdown);
 });
 </script> -->
+@php
+    $directStatusClosedTypes = DB::table('marking_data')
+        ->select('status_closed')
+        ->distinct()
+        ->pluck('status_closed')
+        ->toArray();
+@endphp
 <script>
         const mergedData = @json(session('merged_data', []));
         const header = @json(session('header', []));
         const serviceTypes = @json(session('service_types', []));
+        // const statusClosedTypes = @json(session('statusclosed_types', []));
+        const statusClosedTypes = @json($directStatusClosedTypes);
+        console.log('Direct query status closed types:', statusClosedTypes);
         const closedTypes = @json(session('closed_types', []));
         const segmens = @json(session('segmens', []));
         const customerTypes = @json(session('customer_types', []));
@@ -238,6 +248,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const TiketColumnIndex = header.indexOf('TICKET ID GAMAS');
         const regionColumnIndex = header.indexOf('REGION');
         const serviceColumnIndex = header.indexOf('SERVICE TYPE');
+        const statusclosedColumnIndex = header.indexOf('STATUS');
         const segmenColumnIndex = header.indexOf('CUSTOMER SEGMENT');
         const customertypeColumnIndex = header.indexOf('SOURCE TICKET');
         const classificationtypeColumnIndex = header.indexOf('CLASSIFICATION FLAG');
@@ -378,27 +389,27 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         function isValidServiceType(service) {
-    console.log('Checking service type value:', service);
-    console.log('Available service types from database:', serviceTypes);
-    
-    // Check if service is null, undefined, or an empty string
-    if (!service || service === "" || service === undefined || service === null) {
-        return false;
-    }
+                console.log('Checking service type value:', service);
+                console.log('Available service types from database:', serviceTypes);
+                
+                // Check if service is null, undefined, or an empty string
+                if (!service || service === "" || service === undefined || service === null) {
+                    return false;
+                }
 
-    // Normalize service type for comparison
-    const normalizedService = service.trim().toLowerCase();
-    
-    // Compare with service types from database
-    return serviceTypes.some(type => {
-        // Check if the type is valid (not null or undefined)
-        if (type && typeof type === 'string') {
-            const normalizedType = type.toLowerCase().trim();
-            return normalizedType === normalizedService;
+            // Normalize service type for comparison
+            const normalizedService = service.trim().toLowerCase();
+            
+            // Compare with service types from database
+            return serviceTypes.some(type => {
+                // Check if the type is valid (not null or undefined)
+                if (type && typeof type === 'string') {
+                    const normalizedType = type.toLowerCase().trim();
+                    return normalizedType === normalizedService;
+                }
+                return false; // If type is invalid, return false
+            });
         }
-        return false; // If type is invalid, return false
-    });
-}
 
         function isValidSegmen(segmen) {
             console.log('Checking segmen type value:', segmen);
@@ -611,10 +622,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
     console.log('Processing', mergedData.length, 'rows of data');
 
-    function isValidStatusType(status) {
-        const isClosed = status === 'CLOSED';
-        console.log('Checking status:', status, 'Is it CLOSED?', isClosed); // Log untuk memeriksa status
-        return isClosed;
+    function isValidStatusType(statusclosed) {
+        console.log('Checking status closed type value:', statusclosed);
+                console.log('Available status closed types from database:', statusClosedTypes);
+                
+                // Check if service is null, undefined, or an empty string
+                if (!statusclosed || statusclosed === "" || statusclosed === undefined || statusclosed === null) {
+                    return false;
+                }
+
+            // Normalize service type for comparison
+            const normalizedStatusClosed = statusclosed.trim().toLowerCase();
+            
+            // Compare with service types from database
+            return statusClosedTypes.some(type => {
+                // Check if the type is valid (not null or undefined)
+                if (type && typeof type === 'string') {
+                    const normalizedType = type.toLowerCase().trim();
+                    return normalizedType === normalizedStatusClosed;
+                }
+                return false; // If type is invalid, return false
+            });
     }
 
     function determineTicketStatus(status) {
@@ -1251,46 +1279,68 @@ document.getElementById('downloadExcel').addEventListener('click', async functio
 
         // Fungsi untuk mendapatkan data tabel (sama seperti sebelumnya)
         function getTableData(table) {
-            const rows = table.getElementsByTagName('tr');
-            const data = [];
-            
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                const rowData = [];
-                const cells = row.getElementsByTagName('td');
-                const headers = row.getElementsByTagName('th');
+    const rows = table.getElementsByTagName('tr');
+    const data = [];
+    
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const rowData = [];
+        const cells = row.getElementsByTagName('td');
+        const headers = row.getElementsByTagName('th');
+        
+        // Tangani header
+        if (headers.length > 0) {
+            for (let j = 0; j < headers.length; j++) {
+                rowData.push(headers[j].textContent.trim());
+            }
+        }
+        
+        // Tangani sel dengan format tanggal khusus
+        if (cells.length > 0) {
+            for (let j = 0; j < cells.length; j++) {
+                const cellText = cells[j].textContent.trim();
                 
-                if (headers.length > 0) {
-                    for (let j = 0; j < headers.length; j++) {
-                        rowData.push(headers[j].textContent.trim());
-                    }
-                }
+                // Cek apakah ini adalah tanggal dengan format yang diketahui
+                const isDateFormat = /^\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/.test(cellText) || 
+                                   /^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}$/.test(cellText);
                 
-                if (cells.length > 0) {
-                    for (let j = 0; j < cells.length; j++) {
-                        rowData.push(cells[j].textContent.trim());
-                    }
-                }
-                
-                if (rowData.length > 0) {
-                    data.push(rowData);
+                if (isDateFormat) {
+                    // Jika ini tanggal, simpan dengan format aslinya
+                    rowData.push(cellText);
+                } else if (!isNaN(cellText) && cellText.includes('.') && 
+                          parseFloat(cellText) > 40000 && parseFloat(cellText) < 50000) {
+                    // Ini kemungkinan serial date Excel, konversi kembali ke format tanggal
+                    const excelDate = parseFloat(cellText);
+                    const jsDate = new Date((excelDate - 25569) * 86400 * 1000);
+                    const formattedDate = dayjs(jsDate).format('DD/MM/YYYY HH:mm:ss');
+                    rowData.push(formattedDate);
+                } else {
+                    // Bukan tanggal, simpan apa adanya
+                    rowData.push(cellText);
                 }
             }
-            return data;
         }
+        
+        if (rowData.length > 0) {
+            data.push(rowData);
+        }
+    }
+    return data;
+}
 
-        const mergedData = getTableData(mergedTable);
-        const processedData = getTableData(processedTable);
-        
-        const combinedData = [];
-        const maxRows = Math.max(mergedData.length, processedData.length);
-        
-        for (let i = 0; i < maxRows; i++) {
-            const row = [];
-            if (mergedData[i]) row.push(...mergedData[i]);
-            if (processedData[i]) row.push(...processedData[i]);
-            combinedData.push(row);
-        }
+// Fungsi untuk menggabungkan data tabel
+const mergedData = getTableData(mergedTable);
+const processedData = getTableData(processedTable);
+
+const combinedData = [];
+const maxRows = Math.max(mergedData.length, processedData.length);
+
+for (let i = 0; i < maxRows; i++) {
+    const row = [];
+    if (mergedData[i]) row.push(...mergedData[i]);
+    if (processedData[i]) row.push(...processedData[i]);
+    combinedData.push(row);
+}
 
         const response = await fetch('/api/save-excel', {
             method: 'POST',

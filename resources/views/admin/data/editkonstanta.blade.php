@@ -46,28 +46,14 @@
             <option value="status_closed">Status Closed</option>
             <option value="closed_reopen_by">Closed Reopen By</option>
             <option value="ttr">TTR</option>
-            <option value="z">z</option>
+            <option value="z">Z</option>
         </select>
-    </div>
-
-    <!-- Dropdown untuk Marking Type -->
-    <div class="mb-4">
-        <label for="marking_type" class="block text-sm font-medium text-gray-600">Marking Type</label>
-        <select name="marking_type" id="marking_type" class="w-full px-4 py-2 mt-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none">
-            <option value="">Pilih Marking Type</option>
-            <option value="type1" {{ old('marking_type', $konstanta->marking_type) == 'type1' ? 'selected' : '' }}>Type 1</option>
-            <option value="type2" {{ old('marking_type', $konstanta->marking_type) == 'type2' ? 'selected' : '' }}>Type 2</option>
-            <option value="type3" {{ old('marking_type', $konstanta->marking_type) == 'type3' ? 'selected' : '' }}>Type 3</option>
-        </select>
-        @error('marking_type')
-            <span class="text-red-500 text-sm">{{ $message }}</span>
-        @enderror
     </div>
 
     <!-- Input untuk kolom yang dipilih -->
     <div class="mb-4" id="input_field" style="display: none;">
         <label for="input_value" class="block text-sm font-medium text-gray-600">Masukkan Nilai Baru</label>
-        <input type="text" id="input_value" name="value" class="w-full px-4 py-2 mt-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none" value="">
+        <input type="text" id="input_value" name="value" class="w-full px-4 py-2 mt-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none">
     </div>
 
     <!-- Submit Button -->
@@ -101,6 +87,7 @@
         }
     }
 </script>
+
 
 
 

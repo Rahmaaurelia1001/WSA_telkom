@@ -58,7 +58,14 @@ class FileProcessController extends Controller
             ->where('service_type', '!=', '')
             ->pluck('service_type')
             ->toArray();
-
+        
+        $statusClosedTypes = DB::table('marking_data')
+            ->select('status_closed')
+            ->distinct()
+            ->pluck('status_closed')
+            ->toArray();
+        
+        
         $segmens = DB::table('marking_data')
             ->select('segmen')
             ->distinct()
@@ -153,7 +160,7 @@ class FileProcessController extends Controller
 
         $nonHVCValue = $firstNonHVCValue ? $firstNonHVCValue->value : 0;
 
-        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes', 'classificationTypes', 'customerSegments', 'zTypes', 'closedTypes', 'maxValues', 'idValues', 'secondCustomerSegment', 'maxValues2', 'idValues2', 'thirdCustomerSegment', 'maxValues3', 'idValues3', 'maxValues4', 'idValues4',  'ttrThreshold', 'ttrThreshold1', 'ttrThreshold2', 'ttrThreshold3', 'nonHVCValue', 'firstNonHVCValue'));
+        return view('upload-form', compact('mergedData', 'header', 'successMessage', 'rowCount', 'serviceTypes', 'segmens', 'customerTypes', 'classificationTypes', 'customerSegments', 'zTypes', 'closedTypes', 'maxValues', 'idValues', 'secondCustomerSegment', 'maxValues2', 'idValues2', 'thirdCustomerSegment', 'maxValues3', 'idValues3', 'maxValues4', 'idValues4',  'ttrThreshold', 'ttrThreshold1', 'ttrThreshold2', 'ttrThreshold3', 'nonHVCValue', 'firstNonHVCValue', 'statusClosedTypes'));
     }
 
     public function process(Request $request)
@@ -286,6 +293,12 @@ class FileProcessController extends Controller
                 ->where('closed_reopen_by', '!=', '')
                 ->toArray();
 
+            $statusClosedTypes = DB::table('marking_data')
+                ->select('status_closed')
+                ->distinct()
+                ->pluck('status_closed')
+                ->toArray();
+
             // Convert header and data to numeric arrays
             $header = array_values($header);
             $mergedData = array_map(function($row) {
@@ -301,7 +314,8 @@ class FileProcessController extends Controller
                 'classification_types' => $classificationTypes,
                 'customer_segments' => $customerSegments,
                 'zs' => $zTypes,
-                'closed_types' => $closedTypes
+                'closed_types' => $closedTypes,
+                'statusclosed_types' => $statusClosedTypes
             ]);
             session()->flash('success_message', 'File berhasil digabungkan.');
 
@@ -428,6 +442,36 @@ class FileProcessController extends Controller
         } catch (\Exception $e) {
             Log::error('Error checking service type: ' . $e->getMessage());
             return response()->json(['error' => 'Terjadi kesalahan saat memeriksa service type'], 500);
+        }
+    }
+
+    public function getStatusClosedTypes()
+    {
+        try {
+            $statusClosedTypes = DB::table('marking_data')
+                ->select('status_closed')
+                ->distinct()
+                ->pluck('status_closed')
+                ->toArray();
+                
+            return $statusClosedTypes; // Kembalikan array langsung
+        } catch (\Exception $e) {
+            Log::error('Error fetching status closed types: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat mengambil data status closed'], 500);
+        }
+    }
+
+    public function checkStatusClosedType($statusclosed)
+    {
+        try {
+            $exists = DB::table('marking_data')
+                ->where('status_closed', $statusclosed)
+                ->exists();
+            
+            return response()->json(['exists' => $exists]);
+        } catch (\Exception $e) {
+            Log::error('Error checking closed type: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan saat memeriksa closed type'], 500);
         }
     }
 
