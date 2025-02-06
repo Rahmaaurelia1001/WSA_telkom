@@ -77,8 +77,7 @@ class FileProcessController extends Controller
             ->whereNotNull('customer_segment')
             ->where('customer_segment', '!=', '')
             ->distinct()
-            ->orderBy('customer_segment')
-            ->skip(1)  // Skip the first one to get the second value
+            ->orderBy('customer_segment', 'asc')
             ->first();
         
         $thirdCustomerSegment = DB::table('marking_data')
@@ -86,9 +85,9 @@ class FileProcessController extends Controller
             ->whereNotNull('customer_segment')
             ->where('customer_segment', '!=', '')
             ->distinct()
-            ->orderBy('customer_segment')
-            ->skip(2)  // Skip the first one to get the second value
-            ->first();
+            ->orderBy('customer_segment', 'asc') // Pastikan diurutkan dengan benar
+            ->skip(5)  // Skip 2 baris pertama
+            ->first(); // Ambil baris ketiga
 
         $customerTypes = DB::table('marking_data')
             ->select('customer_type')
@@ -130,6 +129,8 @@ class FileProcessController extends Controller
             ->orderBy('id', 'asc')
             ->first();
         
+        
+
         $ttrValue1 = DB::table('ttr_data')
             ->select('jam_value')
             ->orderBy('id', 'asc')
