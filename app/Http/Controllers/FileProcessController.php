@@ -125,36 +125,39 @@ class FileProcessController extends Controller
         }
     }
     public function deleteSelected(Request $request)
-    {
-        $mergedData = session('merged_data', []);
-        $header = session('header', []);
+{
+    $mergedData = session('merged_data', []);
+    $header = session('header', []);
 
-        $columnToDelete = $request->input('column');
-        $valuesToDelete = $request->input('value', []);
+    $columnToDelete = $request->input('column');
+    $valuesToDelete = $request->input('value', []);
 
-        if (empty($mergedData)) {
-            return back()->withErrors(['msg' => 'Tidak ada data yang dapat dihapus.']);
-        }
-
-        $columnIndex = array_search($columnToDelete, $header);
-
-        if ($columnIndex === false) {
-            return back()->withErrors(['msg' => 'Kolom tidak ditemukan.']);
-        }
-
-        if (empty($valuesToDelete)) {
-            return back()->withErrors(['msg' => 'Tidak ada nilai yang dipilih untuk dihapus.']);
-        }
-
-        $filteredData = array_filter($mergedData, function ($row) use ($columnIndex, $valuesToDelete) {
-            return !in_array($row[$columnIndex], $valuesToDelete);
-        });
-
-        $filteredData = array_values($filteredData);
-
-        session(['merged_data' => $filteredData]);
-        session()->flash('success_message', 'Data berhasil dihapus.');
-
-        return redirect()->route('upload.form');
+    if (empty($mergedData)) {
+        return back()->withErrors(['msg' => 'Tidak ada data yang dapat dihapus.']);
     }
+
+    $columnIndex = array_search($columnToDelete, $header);
+
+    if ($columnIndex === false) {
+        return back()->withErrors(['msg' => 'Kolom tidak ditemukan.']);
+    }
+
+    if (empty($valuesToDelete)) {
+        return back()->withErrors(['msg' => 'Tidak ada nilai yang dipilih untuk dihapus.']);
+    }
+
+    $filteredData = array_filter($mergedData, function ($row) use ($columnIndex, $valuesToDelete) {
+        // Convert row to array if it's not already
+        $rowData = is_array($row) ? array_values($row) : array_values((array)$row);
+        // Check if the column exists in the row
+        return isset($rowData[$columnIndex]) && !in_array($rowData[$columnIndex], $valuesToDelete);
+    });
+
+    $filteredData = array_values($filteredData);
+
+    session(['merged_data' => $filteredData]);
+    session()->flash('success_message', 'Data berhasil dihapus.');
+
+    return redirect()->route('upload.form');
+}
 }
