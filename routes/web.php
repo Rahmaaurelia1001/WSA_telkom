@@ -99,7 +99,15 @@ Route::middleware(['auth'])->group(function () {
         //     Route::get('/stream/{id}', [ExcelController::class, 'streamFromDatabase'])->name('excel.stream');
         Route::delete('/excel/{id}', [ExcelController::class, 'destroy'])->name('excel.destroy');        // });
 
-       
+        Route::get('/upload', [FileProcessController::class, 'showForm'])->name('upload.form');
+        Route::post('/upload/process', [FileProcessController::class, 'process'])->name('upload.process');
+        Route::get('/api/download-processed-data', [FileProcessController::class, 'downloadProcessedData']);
+        Route::get('/upload', [FileProcessController::class, 'showForm'])->name('upload.form');
+Route::post('/upload/process', [FileProcessController::class, 'process'])->name('upload.process');
+Route::post('/api/save-excel', [FileProcessController::class, 'saveExcel']);
+
+Route::get('/konstanta', [ExcelDisplayController::class, 'index'])->name('konstanta.index');
+Route::post('/excel/update', [ExcelDisplayController::class, 'update'])->name('excel.update');
 
 
     // });
