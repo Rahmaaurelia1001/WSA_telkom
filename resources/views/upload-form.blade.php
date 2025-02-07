@@ -264,11 +264,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const bookingDateColumnIndexProcessed = mergedData[0].indexOf('BOOKING DATE');
         const reportedDateColumnIndexProcessed = mergedData[0].indexOf('REPORTED DATE');
         const regionColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'REG-1');
-        const serviceColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Service Type');
-        const segmenColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Customer Segment');
-        const customertypeColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Customer Only');
-        const classificationtypeColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Classification');
-        const customersegmentsColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'Valid Ticket Group');
+        const serviceColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'SERVICE TYPE?');
+        const segmenColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'CUSTOMER SEGMENT (PL-TSEL)');
+        const customertypeColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'CUSTOMER ONLY');
+        const classificationtypeColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'CLASSIFICATION (TECH ONLY)');
+        const customersegmentsColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'VALID TICKET GRUP');
         const symptomColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'PDA');
         const zColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'NOT GUARANTEE');
         const statusColumnIndexProcessed = mergedData[0].findIndex(col => String(col).trim() === 'TIKET AKTIF');
@@ -311,30 +311,43 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }
 
-        function calculateTimeDifference(date) {
+        function excelDateToJSDate(excelDate) {
+            // Excel epoch starts on December 30, 1899
+            const excelEpoch = new Date(1899, 11, 30);
+            return new Date(excelEpoch.getTime() + (excelDate * 86400 * 1000));
+        }
+
+                function calculateTimeDifference(date) {
             if (!date || date === "" || date === undefined || date === null) {
                 return "#VALUE!";
             }
-
+            
             try {
-                const now = dayjs();
-                const targetDate = dayjs(date);
+                let targetDate;
                 
-                if (!targetDate.isValid()) {
+                // Cek apakah input adalah angka (serial Excel)
+                if (typeof date === 'number') {
+                    targetDate = excelDateToJSDate(date);
+                } else {
+                    targetDate = new Date(date);
+                }
+                
+                if (isNaN(targetDate.getTime())) {
                     return "#VALUE!";
                 }
 
-                const diffInHours = Math.abs(now.diff(targetDate, 'hour', true));
+                const now = new Date();
+                const diffInHours = Math.abs(now - targetDate) / (1000 * 60 * 60);
                 
                 if (diffInHours > 1000000) {
                     console.error('Unreasonable time difference:', {
                         date,
-                        now: now.format(),
+                        now: now.toISOString(),
                         diff: diffInHours
                     });
                     return "#ERROR!";
                 }
-                
+
                 return `${diffInHours.toFixed(2)} jam`;
             } catch (error) {
                 console.error('Error calculating time difference:', error);
@@ -388,6 +401,8 @@ document.addEventListener("DOMContentLoaded", function () {
             return region.trim().toUpperCase() === 'REG-1';
         }
 
+
+
         function isValidServiceType(service) {
                 console.log('Checking service type value:', service);
                 console.log('Available service types from database:', serviceTypes);
@@ -425,7 +440,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 return normalizedType === normalizedSegmen;
             });
         }
-
         function isValidCustomerType(customer) {
             // Detailed logging
             console.log('Input customer type:', customer);
@@ -490,36 +504,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
         
         function isValidCustomerSegment(customersegment) {
-            // Detailed logging
-            console.log('Input customer segment type:', customersegment);
-            console.log('Available customer segment types:', customerSegments);
-            
-            // Input validation
-            if (!customersegment || customersegment === "" || customersegment === undefined || customersegment === null) {
-                console.log('Invalid customer input');
-                return false;
-            }
-            
-            // Normalize the input
-            const normalizedCustomerSegment = customersegment.toString().trim().toLowerCase();
-            console.log('Normalized customer segment type:', normalizedCustomerSegment);
-            
-            // Check each type with logging
-            const result = customerSegments.some(type => {
-                if (!type) {
-                    console.log('Invalid type in customerSegments array:', type);
-                    return false;
-                }
-                const normalizedType = type.toString().trim().toLowerCase();
-                const matches = normalizedType === normalizedCustomerSegment; // Fixed: was comparing with normalizedCustomer
-                console.log(`Comparing: "${normalizedType}" with "${normalizedCustomerSegment}". Match: ${matches}`);
-                return matches;
-            });
-            
-            console.log('Final result for customer segment validation:', result);
-            return result;
+    // Detailed logging
+    console.log('Input customer segment type:', customersegment);
+    console.log('Available customer segment types:', customerSegments);
+    
+    // Input validation
+    // Menganggap input kosong, null, atau string kosong sebagai valid
+    if (customersegment === undefined || customersegment === null || customersegment === '') {
+        console.log('Input is null or undefined, considered valid');
+        return true; // Menganggap null atau undefined sebagai valid
+    }
+    
+    // Normalize the input
+    const normalizedCustomerSegment = customersegment.toString().trim().toLowerCase();
+    console.log('Normalized customer segment type:', normalizedCustomerSegment);
+    
+    // Check each type with logging
+    const result = customerSegments.some(type => {
+        if (!type) {
+            console.log('Invalid type in customerSegments array:', type);
+            return false;
         }
-
+        const normalizedType = type.toString().trim().toLowerCase();
+        const matches = normalizedType === normalizedCustomerSegment; // Fixed: was comparing with normalizedCustomer
+        console.log(`Comparing: "${normalizedType}" with "${normalizedCustomerSegment}". Match: ${matches}`);
+        return matches;
+    });
+    
+    console.log('Final result for customer segment validation:', result);
+    return result;
+}
         function isValidZType(z) {
             // Detailed logging
             console.log('Input z type:', z);
@@ -682,66 +696,83 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log('Final result for closed type validation:', result);
         return result;
     }
-
+    
     function isValidTicket(row) {
-    // Ambil nilai dari row menggunakan indeks yang sudah didefinisikan
-        const reg1 = isRegionOne(row[regionColumnIndexProcessed]);  // Pastikan regionColumnIndexProcessed sudah benar
-        const serviceType = isValidServiceType(row[serviceColumnIndexProcessed]);
-        const customerSegmen = isValidSegmen(row[segmenColumnIndexProcessed]);
-        const customerOnly = isValidCustomerType(row[customertypeColumnIndexProcessed]);
-        const classification = isValidClassificationType(row[classificationtypeColumnIndexProcessed]);
-        const validTicketGroup = isValidCustomerSegment(row[customersegmentsColumnIndexProcessed]);
-        const pda = checkPDAInSymptom(row[symptomColumnIndexProcessed]);
-        const notGuarantee = !isGuaranteeStatus(row[zColumnIndexProcessed]);
-        const tiketAktif = row[statusColumnIndexProcessed] !== 'CLOSED'; // Tiket aktif jika status bukan CLOSED
+        // Ambil nilai dari row menggunakan indeks yang sudah didefinisikan
+        const reg1 = isRegionOne(row[regionColumnIndex] || '');  // Pastikan regionColumnIndexProcessed sudah benar
+        const serviceType = isValidServiceType(row[serviceColumnIndex] || '');
+        const customerSegmen = isValidSegmen(row[segmenColumnIndex] || '');
+        const customerOnly = isValidCustomerType(row[customertypeColumnIndex] || '');
+        const classification = isValidClassificationType(row[classificationtypeColumnIndex] || '');
+        const validTicketGroup = isValidCustomerSegment(row[customersegmentsColumnIndex] || '');
+        const pda = checkPDAInSymptom(row[symptomColumnIndex] || '');
+        const ticketAktif = !isValidStatusType(row[statusColumnIndex] || '') // Tiket aktif jika status bukan CLOSED
+        const notGuarantee = !isGuaranteeStatus(row[zColumnIndex] || '');
 
         // Log data untuk memastikan nilai yang diambil
-            console.log('Checking row:', {
-                reg1,
-                serviceType,
-                customerSegmen,
-                customerOnly,
-                classification,
-                validTicketGroup,
-                pda,
-                notGuarantee,
-                tiketAktif
-            });
+        console.log('Checking row:', {
+            reg1,
+            serviceType,
+            customerSegmen,
+            customerOnly,
+            classification,
+            validTicketGroup,
+            pda,
+            ticketAktif,
+            notGuarantee
+        });
 
-            // Periksa apakah semua kondisi terpenuhi
-            const isValid = reg1 &&
-                            serviceType &&
-                            customerSegmen &&
-                            customerOnly &&
-                            classification &&
-                            validTicketGroup &&
-                            pda &&
-                            notGuarantee &&
-                            tiketAktif;
+        // Periksa apakah semua kondisi terpenuhi
+        const isValid = reg1 &&
+                        serviceType &&
+                        customerSegmen &&
+                        customerOnly &&
+                        classification &&
+                        validTicketGroup &&
+                        pda &&
+                        notGuarantee &&
+                        ticketAktif;
 
-            console.log('Is valid ticket:', isValid);
-            return isValid ? 'TRUE' : 'FALSE'; // Return 'TRUE' jika valid, 'FALSE' jika tidak
+        console.log('Is valid ticket:', isValid);
+        return isValid ? 'TRUE' : 'FALSE'; // Return 'TRUE' jika valid, 'FALSE' jika tidak
     }
 
     function isValidAssurance(row) {
-        const reg1 = isRegionOne(row[regionColumnIndexProcessed]);
-        const serviceType = isValidServiceType(row[serviceColumnIndexProcessed]);
-        const customerSegmen = isValidSegmen(row[segmenColumnIndexProcessed]);
-        const customerOnly = isValidCustomerType(row[customertypeColumnIndexProcessed]);
-        const classification = isValidClassificationType(row[classificationtypeColumnIndexProcessed]);
-        const validTicketGroup = isValidCustomerSegment(row[customersegmentsColumnIndexProcessed]);
-        const pda = checkPDAInSymptom(row[symptomColumnIndexProcessed]);
-        const notGuarantee = !isGuaranteeStatus(row[zColumnIndexProcessed]);
+        // Ambil nilai dari row menggunakan indeks yang sudah didefinisikan
+        const reg1 = isRegionOne(row[regionColumnIndex] || '');  // Gunakan regionColumnIndex tanpa Processed
+        const serviceType = isValidServiceType(row[serviceColumnIndex] || ''); // Gunakan serviceColumnIndex tanpa Processed
+        const customerSegmen = isValidSegmen(row[segmenColumnIndex] || ''); // Gunakan segmenColumnIndex tanpa Processed
+        const customerOnly = isValidCustomerType(row[customertypeColumnIndex] || ''); // Gunakan customertypeColumnIndex tanpa Processed
+        const classification = isValidClassificationType(row[classificationtypeColumnIndex] || ''); // Gunakan classificationtypeColumnIndex tanpa Processed
+        const validTicketGroup = isValidCustomerSegment(row[customersegmentsColumnIndex] || ''); // Gunakan customersegmentsColumnIndex tanpa Processed
+        const pda = checkPDAInSymptom(row[symptomColumnIndex] || ''); // Gunakan symptomColumnIndex tanpa Processed
+        const notGuarantee = !isGuaranteeStatus(row[zColumnIndex] || ''); // Gunakan zColumnIndex tanpa Processed
 
-        return reg1 && 
-            serviceType && 
-            customerSegmen && 
-            customerOnly && 
-            classification && 
-            validTicketGroup && 
-            pda && 
-            notGuarantee;
-        }
+        // Log data untuk memastikan nilai yang diambil
+        console.log('Checking row for assurance:', {
+            reg1,
+            serviceType,
+            customerSegmen,
+            customerOnly,
+            classification,
+            validTicketGroup,
+            pda,
+            notGuarantee
+        });
+
+        // Periksa apakah semua kondisi terpenuhi
+        const isValid = reg1 &&
+                        serviceType &&
+                        customerSegmen &&
+                        customerOnly &&
+                        classification &&
+                        validTicketGroup &&
+                        pda &&
+                        notGuarantee;
+
+        console.log('Is valid assurance:', isValid);
+        return isValid ? 'TRUE' : 'FALSE'; // Return 'TRUE' jika valid, 'FALSE' jika tidak
+    }
 
         function calculateResolutionTime(resolveDate, reportedDate) {
             if (!resolveDate || resolveDate === "" || resolveDate === undefined || resolveDate === null) {
@@ -908,42 +939,48 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function compareDateWithToday(resolveDate) {
-        console.log('Comparing dates:', {
-            resolveDate,
-            today: new Date()
-        });
+    console.log('Received resolveDate:', resolveDate);
 
-        try {
-            // If resolveDate is empty or invalid, return 'FALSE'
-            if (!resolveDate || resolveDate.length === 0) {
-                console.log('Empty or invalid resolve date');
-                return 'FALSE';
-            }
+    try {
+        // Konversi jika resolveDate adalah Excel serial number
+        if (typeof resolveDate === 'number') {
+            const baseDate = new Date(1900, 0, 1); // 1 Januari 1900
+            const convertedDate = new Date(baseDate.getTime() + (resolveDate - 2) * 24 * 60 * 60 * 1000);
+            resolveDate = dayjs(convertedDate).format('YYYY-MM-DD'); // Ubah ke format standar
+            console.log('Converted Excel serial number to date:', resolveDate);
+        }
 
-            // Format resolveDate to YYYYMMDD
-            const resolve = dayjs(resolveDate);
-            if (!resolve.isValid()) {
-                console.log('Invalid resolve date format');
-                return 'FALSE';
-            }
-            const formattedResolveDate = resolve.format('YYYYMMDD');
-
-            // Format today's date to YYYYMMDD
-            const today = dayjs();
-            const formattedToday = today.format('YYYYMMDD');
-
-            console.log('Formatted dates comparison:', {
-                formattedResolveDate,
-                formattedToday
-            });
-
-            // Compare the formatted dates and return 'TRUE' or 'FALSE'
-            return formattedResolveDate === formattedToday ? 'TRUE' : 'FALSE';
-        } catch (error) {
-            console.error('Error comparing dates:', error);
+        // Jika resolveDate kosong atau invalid, return 'FALSE'
+        if (!resolveDate || resolveDate.trim().length === 0) {
+            console.log('Empty or invalid resolve date');
             return 'FALSE';
         }
+
+        // Format resolveDate ke YYYYMMDD
+        const resolve = dayjs(resolveDate, ['YYYY-MM-DD', 'MM/DD/YYYY', 'DD-MM-YYYY']);
+        if (!resolve.isValid()) {
+            console.log('Invalid resolve date format:', resolveDate);
+            return 'FALSE';
+        }
+        const formattedResolveDate = resolve.format('YYYYMMDD');
+
+        // Format tanggal hari ini ke YYYYMMDD
+        const today = dayjs();
+        const formattedToday = today.format('YYYYMMDD');
+
+        console.log('Formatted dates comparison:', {
+            formattedResolveDate,
+            formattedToday
+        });
+
+        // Bandingkan tanggal yang diformat
+        return formattedResolveDate === formattedToday ? 'TRUE' : 'FALSE';
+    } catch (error) {
+        console.error('Error comparing dates:', error);
+        return 'FALSE';
     }
+}
+
 
     function countIfUnique(data, columnIndex, valueToCheck) {
         let count = 0;
@@ -1024,33 +1061,55 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+
     function searchTextInValue(searchText, value) {
         if (!searchText || !value) {
+            console.log('Invalid input: searchText or value is missing');
             return false;
         }
+
         // Convert both to string and uppercase for case-insensitive search
         const searchStr = String(searchText).toUpperCase();
         const valueStr = String(value).toUpperCase();
-        
+
+        // Log searchStr and valueStr for debugging
+        console.log('searchStr:', searchStr);
+        console.log('valueStr:', valueStr);
+
         // Return true if searchStr is found in valueStr
         return valueStr.indexOf(searchStr) !== -1;
     }
 
     function isBothSegmentsFalse(row, secondCustomerSegment, thirdCustomerSegment) 
     {
-        const secondSegmentMatch = searchTextInValue(secondCustomerSegment.customer_segment, row[customertypeColumnIndex]);
-        const thirdSegmentMatch = searchTextInValue(thirdCustomerSegment.customer_segment, row[customertypeColumnIndex]);
+        const secondSegmentMatch = searchTextInValue(secondCustomerSegment.customer_segment, row[customersegmentsColumnIndex]);
+        const thirdSegmentMatch = searchTextInValue(thirdCustomerSegment.customer_segment, row[customersegmentsColumnIndex]);
         return !secondSegmentMatch && !thirdSegmentMatch;
     }
 
-    function isAllValid(status, row, closed, isUnique) 
-    {
-        return (
-            isValidStatusType(status) && 
-            isValidAssurance(row) && 
-            isValidClosedType(closed) && 
-            isUnique
-        );
+    function isAllValid(status, row, closed, isUnique) {
+        // Ambil nilai dari parameter yang diberikan
+        const validStatus = isValidStatusType(row[statusColumnIndex] || '')  // Pastikan status valid
+        const validAssurance = isValidAssurance(row); // Cek validitas assurance
+        const validClosed = isValidClosedType(row[closedColumnIndex] || ''); // Pastikan tipe closed valid
+        const validDate = compareDateWithToday(row[resolveDateColumnIndex] || ''); // Pastikan tanggal valid
+
+        // Log data untuk memastikan nilai yang diambil
+        console.log('Checking all validations:', {
+            validStatus,
+            validAssurance,
+            validClosed,
+            validDate
+        });
+
+        // Periksa apakah semua kondisi terpenuhi
+        const isAllValid = validStatus &&
+                        validAssurance &&
+                        validClosed &&
+                        validDate;
+
+        console.log('Is all valid:', isAllValid);
+        return isAllValid ? 'TRUE' : 'FALSE'; // Return 'TRUE' jika valid, 'FALSE' jika tidak
     }
 
     function checkTTR(timeValue) 
@@ -1190,8 +1249,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50';
 
-        const isClosed = status === 'CLOSED'; // Memeriksa jika statusnya CLOSED
-        const ticketAktif = isClosed ? false : true;
+        const ticketAktif = isValidStatusType(status) ? 'FALSE' : 'TRUE'; // Jika valid, maka FALSE, jika tidak valid, maka TRUE
 
         const isBookingDateValid = bookingDate && bookingDate.length > 0;
         const isTiketValid = Tiket && Tiket.length > 0;
@@ -1217,11 +1275,11 @@ document.addEventListener("DOMContentLoaded", function () {
             { value: ticketAktif ? 'TRUE' : 'FALSE' },
             { value: isGuaranteeStatus(guaranteeStatus) ? 'TRUE' : 'FALSE' },
             { value: isValidStatusType(status) ? 'TRUE' : 'FALSE' },
-            { value: isValidTicket(row) ? 'TRUE' : 'FALSE' },
-            { value: isValidAssurance(row) ? 'TRUE' : 'FALSE' },
-            { value: searchTextInValue(secondCustomerSegment.customer_segment, row[customertypeColumnIndex]) ? 'TRUE' : 'FALSE' },
+            { value: isValidTicket(row) },
+            { value: isValidAssurance(row)},
+            { value: searchTextInValue(secondCustomerSegment.customer_segment, row[customersegmentsColumnIndex]) ? 'TRUE' : 'FALSE' },
             { value: getMarkingDiamondCategory(calculateTimeDifference(reportedDate)) },
-            { value: searchTextInValue(thirdCustomerSegment.customer_segment, row[customertypeColumnIndex]) ? 'TRUE' : 'FALSE' },
+            { value: searchTextInValue(thirdCustomerSegment.customer_segment, row[customersegmentsColumnIndex]) ? 'TRUE' : 'FALSE' },
             { value: getMarkingPlatinumCategory(calculateTimeDifference(reportedDate)) },
             { value: isBothSegmentsFalse(row, secondCustomerSegment, thirdCustomerSegment) ? 'TRUE' : 'FALSE' },
             { value: getMarkingNonCategory(calculateTimeDifference(reportedDate)) },
@@ -1229,7 +1287,7 @@ document.addEventListener("DOMContentLoaded", function () {
             { value: calculateResolutionTime(resolveDate, reportedDate) + ' jam' },
             { value: processedBookingDate },
             { value: timeFromResolveToBooking + ' jam' },
-            { value: isAllValid(status, row, closed, isUnique) ? 'TRUE' : 'FALSE' },
+            { value: isAllValid(status, row, closed, isUnique)},
             { value: checkTTR(timeFromResolveToBooking + ' jam') ? 'TRUE' : 'FALSE' },
             { value: checkTTR1(calculateResolutionTime(resolveDate, reportedDate) + ' jam') ? 'TRUE' : 'FALSE' },
             { value: checkTTR2(calculateResolutionTime(resolveDate, reportedDate) + ' jam') ? 'TRUE' : 'FALSE' },
