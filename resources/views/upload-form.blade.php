@@ -488,6 +488,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return result;
         }
 
+        
         function isValidCustomerSegment(customersegment) {
             // Detailed logging
             console.log('Input customer segment type:', customersegment);
@@ -549,6 +550,7 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log('Final result for customer type validation:', result);
             return result;
         }
+
 
         // Add new function for PDA check with console logging
         function checkPDAInSymptom(symptom) {
@@ -1158,6 +1160,12 @@ document.addEventListener("DOMContentLoaded", function () {
 }
 
     mergedData.forEach((row, index) => {
+        // if (row && row.customer_segment) {
+        // // Safe to access row.customer_segment
+        //     console.log(row.customer_segment);
+        // } else {
+        //     console.error(`Row ${index} is null or does not have customer_segment`);
+        // }
         console.log(`\n=== Processing Row ${index + 1} ===`);
         
         const bookingDate = row[bookingDateColumnIndex];
@@ -1372,28 +1380,5 @@ for (let i = 0; i < maxRows; i++) {
     }
 });
 </script>
-<!-- <script>
-document.getElementById('shareWhatsApp').addEventListener('click', function() {
-    const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    const hour = String(now.getHours()).padStart(2, '0');
-    
-    const reportName = `Report TTR WSA - ${day}${month}${year} - ${hour}.00 Wib`;
-    
-    // Create WhatsApp message
-    const message = `*${reportName}*\n\n` +
-        `Report has been generated on ${day}/${month}/${year} at ${hour}:00 WIB.\n\n` +
-        `Please check the Excel file that has been downloaded for complete details.`;
-    
-    // Encode the message for WhatsApp URL
-    const encodedMessage = encodeURIComponent(message);
-    
-    // Open WhatsApp Web with the pre-filled message
-    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
-});
-</script> -->
-
 </body>
 </html>
