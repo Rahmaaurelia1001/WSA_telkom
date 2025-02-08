@@ -46,84 +46,86 @@ class FileProcessController extends Controller
         return back()->withErrors(['msg' => 'Terjadi kesalahan saat memproses file: ' . $e->getMessage()]);
     }
 }
-    public function saveExcel(Request $request)
-    {
-        ini_set('max_execution_time', 300); // 300 seconds (5 minutes)
-        ini_set('memory_limit', '512M'); // 512 MB of memory limit
+public function saveExcel(Request $request)
+{
+    // Increase PHP limits for large files
+    ini_set('max_execution_time', 600);
+    ini_set('memory_limit', '1024M');
 
-        try {
-            $request->validate([
-                'data' => 'required|array|min:1'
-            ]);
+    try {
+        $request->validate([
+            'data' => 'required|array|min:1'
+        ]);
 
-            $data = $request->input('data');
+        $data = $request->input('data');
 
-            if (empty($data)) {
-                return response()->json(['error' => 'Data kosong!'], 400);
-            }
-
-            $now = Carbon::now('Asia/Jakarta');
-            $hour = $now->format('H');
-
-            $filename = sprintf(
-                'Report TTR WSA - %s - %s.00 Wib.xlsx',
-                $now->format('dmY'),
-                $hour
-            );
-
-            // Simpan data ke database
-            DB::table('excel_downloads')->insertGetId([
-                'filename' => $filename,
-                'merged_data' => json_encode($data),
-                'processed_data' => json_encode($data),
-                'downloaded_by' => auth()->check() ? auth()->user()->name : 'Guest',
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-
-            // Buat file Excel dari template
-            $templateFile = 'Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx';
-            $filePath = storage_path('app/' . $templateFile);
-            $reader = IOFactory::createReader('Xlsx');
-            $spreadsheet = $reader->load($filePath);
-            $sheet1 = $spreadsheet->getSheet(0);
-
-            // Clear content di Sheet 1 tanpa menghapus baris
-            $highestRow = $sheet1->getHighestRow();
-            $highestColumn = $sheet1->getHighestColumn();
-
-            for ($row = 2; $row <= $highestRow; $row++) { // Mulai dari baris kedua
-                for ($col = 'A'; $col <= $highestColumn; $col++) {
-                    $sheet1->setCellValue($col . $row, ''); // Set nilai sel menjadi kosong
-                }
-            }
-
-            // Isi data di Sheet 1 dari baris ke-2
-            $startRow = 2;
-            foreach ($data as $rowData) {
-                $col = 'A';
-                foreach ($rowData as $cellValue) {
-                    $sheet1->setCellValue($col . $startRow, $cellValue);
-                    $col++;
-                }
-                $startRow++;
-            }
-
-            // Simpan file ke lokasi sementara
-            $tempFilePath = storage_path('app/' . $filename);
-            $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
-            $writer->save($tempFilePath);
-
-            // Return the file for download
-            return response()->download($tempFilePath, $filename)->deleteFileAfterSend(true);
-        } catch (\Exception $e) {
-            Log::error('Gagal menyimpan Excel:', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json(['error' => 'Terjadi kesalahan saat menyimpan file: ' . $e->getMessage()], 500);
+        if (empty($data)) {
+            return response()->json(['error' => 'Data kosong!'], 400);
         }
+
+        // Generate filename
+        $now = Carbon::now('Asia/Jakarta');
+        $filename = sprintf(
+            'Report TTR WSA - %s - %s.00 Wib.xlsx',
+            $now->format('dmY'),
+            $now->format('H')
+        );
+
+        // Load template with minimal memory usage
+        $templateFile = 'Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx';
+        $filePath = storage_path('app/' . $templateFile);
+        
+        $reader = IOFactory::createReaderForFile($filePath);
+        $reader->setReadDataOnly(true);  // Don't read formatting
+        $spreadsheet = $reader->load($filePath);
+        
+        // Get first sheet and clear it efficiently
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->getPageSetup()->setFitToWidth(1);
+        
+        // Clear existing data more efficiently
+        $highestRow = $sheet->getHighestRow();
+        if ($highestRow > 1) {
+            $sheet->removeRow(2, $highestRow - 1);
+        }
+
+        // Batch insert data using array
+        $dataArray = [];
+        foreach ($data as $rowIndex => $rowData) {
+            $dataArray[] = array_values((array)$rowData);
+        }
+        
+        $sheet->fromArray($dataArray, null, 'A2', true);
+
+        // Use memory-efficient writer
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->setPreCalculateFormulas(false);
+        $writer->setOffice2003Compatibility(false);
+
+        // Stream response with proper headers
+        return response()->stream(
+            function () use ($writer) {
+                $writer->save('php://output');
+            },
+            200,
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'max-age=0',
+                'Pragma' => 'public'
+            ]
+        );
+
+    } catch (\Exception $e) {
+        Log::error('Gagal menyimpan Excel:', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->json([
+            'error' => 'Terjadi kesalahan saat menyimpan file: ' . $e->getMessage()
+        ], 500);
     }
+}
     public function deleteSelected(Request $request)
 {
     $mergedData = session('merged_data', []);
