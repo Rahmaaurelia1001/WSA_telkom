@@ -1,123 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Constanta List</title>
+    <title>Excel Data</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        function showEditForm(rowIndex, cellIndex, currentValue) {
+            const form = document.getElementById(`edit-form-${rowIndex}-${cellIndex}`);
+            const input = document.getElementById(`edit-input-${rowIndex}-${cellIndex}`);
+            input.value = currentValue;
+            form.classList.remove('hidden');
+        }
+
+        function deleteRow(rowIndex) {
+            const row = document.getElementById(`row-${rowIndex}`);
+            row.remove();
+        }
+
+        function updateCell(rowIndex, cellIndex) {
+            const input = document.getElementById(`edit-input-${rowIndex}-${cellIndex}`);
+            const newValue = input.value;
+
+            // Update the cell in the table
+            const cell = document.querySelector(`#row-${rowIndex} td:nth-child(${cellIndex + 1})`);
+            cell.innerHTML = newValue + 
+                `<button onclick="showEditForm(${rowIndex}, ${cellIndex}, '${newValue}')" class="ml-2 text-blue-500">Edit</button>` +
+                `<button onclick="deleteRow(${rowIndex})" class="ml-2 text-red-500">Delete</button>`;
+            input.value = '';
+            document.getElementById(`edit-form-${rowIndex}-${cellIndex}`).classList.add('hidden');
+        }
+
+        function saveChanges() {
+            // Collect all the data from the table
+            const data = [];
+            const rows = document.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const rowData = [];
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    rowData.push(cell.innerText);
+                });
+                data.push(rowData);
+            });
+
+            // Send the updated data to the server
+            fetch('/save-excel-data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}' // Include CSRF token for security
+                },
+                body: JSON.stringify({ data: data })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Data saved successfully!');
+                } else {
+                    alert('Error saving data: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
 </head>
-
 <body class="bg-gray-100 h-screen flex items-center justify-center">
-
-    <!-- Card Container -->
     <div class="w-full max-w-6xl bg-white shadow-lg rounded-lg p-6 border border-gray-200">
-        <h2 class="text-2xl font-bold text-center text-gray-700 pb-6">Constanta List</h2>
-
-        <!-- Tabel Responsif -->
+        <h2 class="text-2xl font-bold text-center text-gray-700 pb-6">Excel Sheet Data</h2>
+        
         <div class="overflow-x-auto">
             <table class="w-full border border-gray-300 text-sm text-gray-700">
                 <thead class="bg-red-600 text-white">
                     <tr class="text-left">
-                        <th class="py-3 px-4">Service Type</th>
-                        <th class="py-3 px-4">Customer Type</th>
-                        <th class="py-3 px-4">Customer Segment</th>
-                        <th class="py-3 px-4">Segment</th>
-                        <th class="py-3 px-4">Status</th>
-                        <th class="py-3 px-4">Classification</th>
-                        <th class="py-3 px-4">Status Closed</th>
-                        <th class="py-3 px-4">Closed Reopen By</th>
-                        <th class="py-3 px-4">TTR</th>
-                        <th class="py-3 px-4">Marking Type</th>
-                        <th class="py-3 px-4">Z</th>
-                        <th class="py-3 px-4 text-center">Actions</th>
+                        @foreach ($headers as $header)
+                            <th class="py-3 px-4">{{ $header }}</th>
+                        @endforeach
+                        <th class="py-3 px-4">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($markingData as $data)
-                        <tr class="border-b hover:bg-gray-50 text-center">
-                            <td class="py-3 px-4">{{ $data->service_type }}</td>
-                            <td class="py-3 px-4">{{ $data->customer_type }}</td>
-                            <td class="py-3 px-4">{{ $data->customer_segment }}</td>
-                            <td class="py-3 px-4">{{ $data->segmen }}</td>
-                            <td class="py-3 px-4">{{ $data->status }}</td>
-                            <td class="py-3 px-4">{{ $data->classification }}</td>
-                            <td class="py-3 px-4">{{ $data->status_closed }}</td>
-                            <td class="py-3 px-4">{{ $data->closed_reopen_by }}</td>
-                            <td class="py-3 px-4">{{ $data->ttr }}</td>
-                            <td class="py-3 px-4">{{ $data->marking_type }}</td>
-                            <td class="py-3 px-4">{{ $data->z }}</td>
-                            <td class="py-3 px-4 flex justify-center space-x-3">
-                                <a href="{{ route('admin.data.editkonstanta', $data->id) }}" class="text-blue-500 hover:underline">Edit</a>
-                                <form action="{{ route('admin.data.deleteKonstanta', $data->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus konstanta ini?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-500 hover:text-red-700">Delete</button>
-                                </form>
-                            </td>
+                    @foreach ($excelData as $rowIndex => $row)
+                        <tr id="row-{{ $rowIndex }}" class="border-b hover:bg-gray-50 text-center">
+                            @foreach ($row as $cellIndex => $cell)
+                                <td class="py-3 px-4">
+                                    {{ $cell }}
+                                    <button onclick="showEditForm({{ $rowIndex }}, {{ $cellIndex }}, '{{ $cell }}')" class="ml-2 text-blue-500">Edit</button>
+                                    <button onclick="deleteRow({{ $rowIndex }})" class="ml-2 text-red-500">Delete</button>
+                                    <form id="edit-form-{{ $rowIndex }}-{{ $cellIndex }}" class="hidden mt-2">
+                                        <input type="text" id="edit-input-{{ $rowIndex }}-{{ $cellIndex }}" class="border rounded p-1" />
+                                        <button type="button" onclick="updateCell({{ $rowIndex }}, {{ $cellIndex }})" class="ml-2 text-green-500">Save</button>
+                                    </form>
+                                </td>
+                            @endforeach
                         </tr>
                     @endforeach
                 </tbody>
             </table>
         </div>
 
-        <!-- Tombol Tambah Konstanta -->
-        <div class="mt-6">
-            <button id="showFormBtn" class="w-full px-6 py-3 bg-red-600 text-white rounded-lg shadow-lg hover:bg-red-700">
-                Tambah Konstanta
-            </button>
-        </div>
-
-        <!-- Tombol Kembali ke Dashboard -->
         <div class="mt-4">
-            <a href="{{ route('dashboard') }}" class="w-full block text-center px-6 py-3 bg-red-600 text-white rounded-lg shadow-lg hover:bg-red-700">
+            <button onclick="saveChanges()" class="w-full block text-center px-6 py-3 bg-green-600 text-white rounded-lg shadow-lg hover:bg-green-700">
+                Save All Changes
+            </button>
+            <a href="{{ route('dashboard') }}" class="w-full block text-center px-6 py-3 bg-red-600 text-white rounded-lg shadow-lg hover:bg-red-700 mt-2">
                 Kembali ke Dashboard
             </a>
         </div>
-
-        <!-- Form Tambah Konstanta -->
-        <div id="addConstantaForm" class="mt-6 hidden bg-gray-50 shadow-md rounded-lg p-6 border border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Tambah Konstanta Baru</h3>
-
-            <form action="{{ route('admin.data.store') }}" method="POST" class="space-y-4">
-                @csrf
-
-                <div>
-                    <label for="column" class="block text-sm font-medium text-gray-700">Pilih Kolom</label>
-                    <select id="column" name="column" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500">
-                        <option value="service_type">Service Type</option>
-                        <option value="customer_type">Customer Type</option>
-                        <option value="customer_segment">Customer Segment</option>
-                        <option value="segmen">Segment</option>
-                        <option value="status">Status</option>
-                        <option value="classification">Classification</option>
-                        <option value="status_closed">Status Closed</option>
-                        <option value="closed_reopen_by">Closed Reopen By</option>
-                        <option value="ttr">TTR</option>
-                        <option value="marking_type">Marking Type</option>
-                        <option value="z">Z</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label for="value" class="block text-sm font-medium text-gray-700">Nilai Konstanta</label>
-                    <input type="text" id="value" name="value" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500" placeholder="Masukkan nilai konstanta" required>
-                </div>
-
-                <div class="flex justify-end mt-4">
-                    <button type="submit" class="w-full px-6 py-3 bg-red-600 text-white rounded-md shadow-md hover:bg-red-700 transition duration-300">
-                        Simpan Konstanta
-                    </button>
-                </div>
-            </form>
-        </div>
     </div>
-
-    <script>
-        document.getElementById('showFormBtn').addEventListener('click', function () {
-            document.getElementById('addConstantaForm').classList.toggle('hidden');
-        });
-    </script>
-
 </body>
 </html>

@@ -221,4 +221,6 @@ class FileProcessController extends Controller
 
     return redirect()->route('upload.form');
 }
+    return redirect()->route('upload.form');
+}
 }
