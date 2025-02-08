@@ -24,19 +24,41 @@ class FileProcessController extends Controller
     ]);
 
     try {
-        // Memuat file Excel
+        // Load Excel files
         $allTicketData = IOFactory::load($request->file('all_ticket')->getPathname())->getActiveSheet()->toArray(null, true, false, true);
         $closeTicketData = IOFactory::load($request->file('close_ticket')->getPathname())->getActiveSheet()->toArray(null, true, false, true);
 
-        // Mengambil header sebagai array
-        $header = array_values($allTicketData[1]); // Mengambil header sebagai array
-        $mergedData = array_merge(array_slice($allTicketData, 2), array_slice($closeTicketData, 2));
+        // Log the raw data
+        Log::info('All Ticket Data:', $allTicketData);
+        Log::info('Close Ticket Data:', $closeTicketData);
 
-        // Simpan data ke session
-        session(['merged_data' => $mergedData, 'header' => $header]); // Simpan header sebagai array
+        // Check if all_ticket data is loaded correctly
+        if (empty($allTicketData) || !is_array($allTicketData)) {
+            return back()->withErrors(['msg' => 'Data dari file all_ticket tidak ditemukan atau kosong.']);
+        }
+
+        // Check if the header exists for all_ticket
+        if (!isset($allTicketData[1])) {
+            return back()->withErrors(['msg' => 'Header tidak ditemukan di file all_ticket.']);
+        }
+
+        // Get header as an array
+        $header = array_values($allTicketData[1]); // Get header as an array
+
+        // Prepare close_ticket data
+        $closeData = array_slice($closeTicketData, 2); // Skip header row
+        if (empty($closeData)) {
+            Log::info('Close Ticket Data is empty, proceeding with only all_ticket data.');
+        }
+
+        // Merge data, ensuring we handle the case where close_ticket has no data
+        $mergedData = array_merge(array_slice($allTicketData, 2), $closeData);
+
+        // Save data to session
+        session(['merged_data' => $mergedData, 'header' => $header]); // Save header as an array
         session()->flash('success_message', 'File berhasil digabungkan.');
 
-        // Debug log untuk memeriksa format
+        // Debug log to check format
         Log::info('Header:', $header);
         Log::info('Merged Data:', $mergedData);
 
@@ -125,36 +147,78 @@ class FileProcessController extends Controller
         }
     }
     public function deleteSelected(Request $request)
-    {
-        $mergedData = session('merged_data', []);
-        $header = session('header', []);
+{
+    // Get data from session
+    $mergedData = session('merged_data', []);
+    $header = session('header', []);
 
-        $columnToDelete = $request->input('column');
-        $valuesToDelete = $request->input('value', []);
+    // Debug logging
+    Log::info('Delete request received', [
+        'column' => $request->input('column'),
+        'values' => $request->input('value'),
+        'header' => $header,
+        'data_count_before' => count($mergedData)
+    ]);
 
-        if (empty($mergedData)) {
-            return back()->withErrors(['msg' => 'Tidak ada data yang dapat dihapus.']);
-        }
-
-        $columnIndex = array_search($columnToDelete, $header);
-
-        if ($columnIndex === false) {
-            return back()->withErrors(['msg' => 'Kolom tidak ditemukan.']);
-        }
-
-        if (empty($valuesToDelete)) {
-            return back()->withErrors(['msg' => 'Tidak ada nilai yang dipilih untuk dihapus.']);
-        }
-
-        $filteredData = array_filter($mergedData, function ($row) use ($columnIndex, $valuesToDelete) {
-            return !in_array($row[$columnIndex], $valuesToDelete);
-        });
-
-        $filteredData = array_values($filteredData);
-
-        session(['merged_data' => $filteredData]);
-        session()->flash('success_message', 'Data berhasil dihapus.');
-
-        return redirect()->route('upload.form');
+    // Validation
+    if (empty($mergedData) || !is_array($mergedData)) {
+        Log::error('No merged data found in session');
+        return back()->withErrors(['msg' => 'Tidak ada data yang dapat dihapus.']);
     }
+
+    if (empty($header) || !is_array($header)) {
+        Log::error('No header found in session');
+        return back()->withErrors(['msg' => 'Header tidak ditemukan.']);
+    }
+
+    $columnToDelete = $request->input('column');
+    $valuesToDelete = $request->input('value', []);
+
+    if (empty($columnToDelete)) {
+        Log::error('No column specified for deletion');
+        return back()->withErrors(['msg' => 'Kolom tidak ditemukan.']);
+    }
+
+    if (empty($valuesToDelete)) {
+        Log::error('No values specified for deletion');
+        return back()->withErrors(['msg' => 'Tidak ada nilai yang dipilih untuk dihapus.']);
+    }
+
+    // Find column index
+    $columnIndex = array_search($columnToDelete, array_values($header));
+    
+    if ($columnIndex === false) {
+        Log::error('Column not found in header', ['column' => $columnToDelete, 'header' => $header]);
+        return back()->withErrors(['msg' => 'Kolom tidak ditemukan dalam header.']);
+    }
+
+    // Filter data
+    $filteredData = [];
+    foreach ($mergedData as $row) {
+        // Convert row to array if it's not already
+        $rowArray = is_array($row) ? $row : (array)$row;
+        
+        // Skip if the row doesn't have the column or if the value should be deleted
+        if (!isset($rowArray[$columnIndex]) || in_array($rowArray[$columnIndex], $valuesToDelete)) {
+            continue;
+        }
+        
+        $filteredData[] = $rowArray;
+    }
+
+    // Debug logging
+    Log::info('Data filtered', [
+        'data_count_after' => count($filteredData),
+        'removed_count' => count($mergedData) - count($filteredData)
+    ]);
+
+    // Save filtered data back to session
+    session(['merged_data' => $filteredData]);
+    session()->flash('success_message', sprintf(
+        'Berhasil menghapus %d data.',
+        count($mergedData) - count($filteredData)
+    ));
+
+    return redirect()->route('upload.form');
+}
 }

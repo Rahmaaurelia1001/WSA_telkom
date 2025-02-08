@@ -155,47 +155,70 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const timeDisplay = document.getElementById('current-time');
-        const countdownDisplay = document.getElementById('countdown');
-        const notification = document.getElementById('notification');
-        const notificationMinuteInput = document.getElementById('notificationMinute');
-        const saveNotificationTimeBtn = document.getElementById('saveNotificationTime');
-        const aturButton = document.getElementById('aturButton');
-        const notificationSettings = document.getElementById('notificationSettings');
+    const timeDisplay = document.getElementById('current-time');
+    const countdownDisplay = document.getElementById('countdown');
+    const notification = document.getElementById('notification');
+    const notificationMinuteInput = document.getElementById('notificationMinute');
+    const saveNotificationTimeBtn = document.getElementById('saveNotificationTime');
+    const aturButton = document.getElementById('aturButton');
+    const notificationSettings = document.getElementById('notificationSettings');
 
-        let notificationMinute = parseInt(localStorage.getItem('notificationMinute')) || 55;
-        notificationMinuteInput.value = notificationMinute;
+    let notificationMinute = parseInt(localStorage.getItem('notificationMinute')) || 55;
+    notificationMinuteInput.value = notificationMinute;
 
-        aturButton.addEventListener('click', function() {
-            notificationSettings.style.display = 'block';
-        });
-
-        saveNotificationTimeBtn.addEventListener('click', function() {
-            const newMinute = parseInt(notificationMinuteInput.value);
-            if (newMinute >= 0 && newMinute <= 59) {
-                notificationMinute = newMinute;
-                localStorage.setItem('notificationMinute', notificationMinute);
-                alert(`Notifikasi akan muncul pada menit ke-${notificationMinute}`);
-                notificationSettings.style.display = 'none';
+    // Request permission for notifications
+    if (Notification.permission === 'default') {
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                console.log('Notification permission granted.');
             } else {
-                alert('Masukkan angka antara 0-59');
-                notificationMinuteInput.value = notificationMinute;
+                console.log('Notification permission denied.');
             }
         });
+    }
 
-        function updateClock() {
-            const now = new Date();
-            timeDisplay.textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-
-            if (now.getMinutes() === notificationMinute && now.getSeconds() === 0) {
-                notification.style.display = 'block';
-                setTimeout(() => { notification.style.display = 'none'; }, 20000);
-            }
-        }
-
-        updateClock();
-        setInterval(updateClock, 1000);
+    aturButton.addEventListener('click', function() {
+        notificationSettings.style.display = 'block';
     });
+
+    saveNotificationTimeBtn.addEventListener('click', function() {
+        const newMinute = parseInt(notificationMinuteInput.value);
+        if (newMinute >= 0 && newMinute <= 59) {
+            notificationMinute = newMinute;
+            localStorage.setItem('notificationMinute', notificationMinute);
+            alert(`Notifikasi akan muncul pada menit ke-${notificationMinute}`);
+            notificationSettings.style.display = 'none';
+        } else {
+            alert('Masukkan angka antara 0-59');
+            notificationMinuteInput.value = notificationMinute;
+        }
+    });
+
+    function showDesktopNotification() {
+        if (Notification.permission === 'granted') {
+            new Notification('Waktunya bersiap untuk merekap data!', {
+                body: 'Notifikasi muncul pada menit ke-' + notificationMinute,
+                icon: '/images/logo-telkom.png' // Optional: Add an icon
+            });
+        } else {
+            console.log('Notification permission not granted.');
+        }
+    }
+
+    function updateClock() {
+        const now = new Date();
+        timeDisplay.textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+
+        if (now.getMinutes() === notificationMinute && now.getSeconds() === 0) {
+            notification.style.display = 'block';
+            showDesktopNotification(); // Show desktop notification
+            setTimeout(() => { notification.style.display = 'none'; }, 20000);
+        }
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+});
     </script>
 </body>
 </html>
