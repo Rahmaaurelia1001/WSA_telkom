@@ -109,7 +109,9 @@ Route::post('/api/save-excel', [FileProcessController::class, 'saveExcel']);
 Route::get('/konstanta', [ExcelDisplayController::class, 'index'])->name('konstanta.index');
 Route::post('/excel/update', [ExcelDisplayController::class, 'update'])->name('excel.update');
 Route::post('/save-excel-data', [UserManagementController::class, 'saveExcelData'])->name('save.excel.data');
-
+Route::post('/add-row', [UserManagementController::class, 'addRow']);
+Route::post('/delete-cell', [UserManagementController::class, 'deleteCell']);
+Route::post('/add-column', [UserManagementController::class, 'addColumn']);
 Route::post('/update-cell', [UserManagementController::class, 'updateCell'])->name('update.cell');
 
     // });

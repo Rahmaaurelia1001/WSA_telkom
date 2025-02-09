@@ -48,7 +48,6 @@ class FileProcessController extends Controller
 }
 public function saveExcel(Request $request)
 {
-    // Increase PHP limits for large files
     ini_set('max_execution_time', 600);
     ini_set('memory_limit', '1024M');
 
@@ -71,31 +70,59 @@ public function saveExcel(Request $request)
             $now->format('H')
         );
 
-        // Load template with minimal memory usage
+        // Load template with formatting
         $templateFile = 'Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx';
         $filePath = storage_path('app/' . $templateFile);
         
+        // Load template with all formatting and formulas
         $reader = IOFactory::createReaderForFile($filePath);
-        $reader->setReadDataOnly(true);  // Don't read formatting
+        $reader->setReadDataOnly(false);
         $spreadsheet = $reader->load($filePath);
         
-        // Get first sheet and clear it efficiently
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->getPageSetup()->setFitToWidth(1);
-        
-        // Clear existing data more efficiently
-        $highestRow = $sheet->getHighestRow();
-        if ($highestRow > 1) {
-            $sheet->removeRow(2, $highestRow - 1);
+        // Select sheet 1
+        $sheet = $spreadsheet->setActiveSheetIndex(0);
+
+        // Get the last row with data
+        $highestRow = $sheet->getHighestDataRow();
+        $highestColumn = $sheet->getHighestDataColumn();
+
+        // Clear existing content while preserving formatting
+        // Start from row 2 to preserve headers
+        for ($row = 2; $row <= $highestRow; $row++) {
+            for ($col = 'A'; $col <= $highestColumn; $col++) {
+                $cell = $sheet->getCell($col . $row);
+                if (!$cell->isFormula()) {
+                    // Clear content but preserve formatting
+                    $cell->setValue(null);
+                }
+            }
         }
 
-        // Batch insert data using array
-        $dataArray = [];
-        foreach ($data as $rowIndex => $rowData) {
-            $dataArray[] = array_values((array)$rowData);
-        }
+        // Process new data in chunks
+        $chunkSize = 500;
+        $startRow = 2; // Start from row 2 (after header)
         
-        $sheet->fromArray($dataArray, null, 'A2', true);
+        foreach (array_chunk($data, $chunkSize) as $chunk) {
+            foreach ($chunk as $rowIndex => $rowData) {
+                $currentRow = $startRow + $rowIndex;
+                $rowArray = array_values((array)$rowData);
+                
+                foreach ($rowArray as $columnIndex => $value) {
+                    $column = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnIndex + 1);
+                    $cellCoordinate = $column . $currentRow;
+                    
+                    // Only update cell if it's not a formula cell
+                    $cell = $sheet->getCell($cellCoordinate);
+                    if (!$cell->isFormula()) {
+                        $cell->setValue($value);
+                    }
+                }
+            }
+            
+            $startRow += count($chunk);
+            unset($chunk);
+            gc_collect_cycles();
+        }
 
         // Use memory-efficient writer
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
