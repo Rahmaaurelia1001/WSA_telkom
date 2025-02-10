@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
-
+@include('admin/navbar-admin')
     <div class="min-h-screen flex items-center justify-center">
         <div class="bg-white shadow-lg rounded-lg w-full max-w-md p-8">
             <h2 class="text-2xl font-semibold mb-6 text-center text-gray-800">Edit Konstanta</h2>

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use App\Models\ExcelDownload;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 
@@ -316,6 +317,9 @@ public function deleteCell(Request $request)
         return response()->json(['success' => false, 'message' => 'Error deleting cell: ' . $e->getMessage()], 500);
     }
 }
+
+
+
 public function addColumn(Request $request)
 {
     try {

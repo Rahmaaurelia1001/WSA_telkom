@@ -10,6 +10,9 @@
     <!-- Header -->
     <div class="bg-white shadow-md flex justify-between items-center px-4 md:px-6 py-2 md:py-3 overflow-hidden">
         <img src="/images/logo-telkom.png" alt="Telkom Indonesia" class="h-8 md:h-10">
+        <button onclick="window.history.back()" class="text-xs text-gray-600 hover:text-red-500 hover:underline cursor-pointer focus:outline-none">
+            Back
+        </button>
     </div>
 
     <!-- Profil Content -->

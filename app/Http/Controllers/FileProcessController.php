@@ -8,6 +8,9 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth; // Untuk autentikasi
+use App\Models\ExcelDownload;  // Pastikan model yang benar di-import
+
 
 class FileProcessController extends Controller
 {
@@ -201,7 +204,7 @@ public function saveExcel(Request $request)
         $writer->setOffice2003Compatibility(false);
 
         // Stream response with proper headers
-        return response()->stream(
+        $response = response()->stream(
             function () use ($writer) {
                 $writer->save('php://output');
             },
@@ -214,6 +217,18 @@ public function saveExcel(Request $request)
             ]
         );
 
+        // Simpan informasi pengunduhan ke database
+        ExcelDownload::create([
+            'filename' => $filename,
+            'merged_data' => json_encode($data), // Simpan data yang digabungkan
+            'processed_data' => json_encode($data), // Simpan data yang diproses
+            'downloaded_by' => Auth::check() ? Auth::user()->name : 'Guest', // Siapa yang mengunduh
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $response;
+
     } catch (\Exception $e) {
         Log::error('Gagal menyimpan Excel:', [
             'error' => $e->getMessage(),
@@ -224,6 +239,7 @@ public function saveExcel(Request $request)
         ], 500);
     }
 }
+
     public function deleteSelected(Request $request)
 {
     $mergedData = session('merged_data', []);

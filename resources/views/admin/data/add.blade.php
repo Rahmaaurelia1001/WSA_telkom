@@ -252,6 +252,7 @@
     </script>
 </head>
 <body class="bg-gray-100 min-h-screen">
+@include('admin/navbar-admin')
     <!-- Loading Indicator -->
     <div id="loadingIndicator" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
         <div class="bg-white p-4 rounded-lg shadow-lg">
@@ -269,11 +270,11 @@
                     <h2 class="text-2xl font-bold text-gray-700">Excel Data Editor</h2>
                     <div class="space-x-4">
                         <button onclick="addNewRow()" 
-                                class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                                class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
                             Add Row
                         </button>
                         <button onclick="addNewColumn()" 
-                                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                                class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                             Add Column
                         </button>
                     </div>
@@ -281,7 +282,7 @@
                 
                 <div class="overflow-x-auto">
                     <table class="w-full border-collapse">
-                        <thead class="bg-red-600 text-white">
+                        <thead class="bg-white text-white">
                             <tr>
                                 @foreach ($headers as $header)
                                     <th class="py-3 px-4 text-left">{{ $header }}</th>
