@@ -62,13 +62,32 @@ public function saveExcel(Request $request)
             return response()->json(['error' => 'Data kosong!'], 400);
         }
 
-        // Generate filename
+        // Generate filename and current date/time
         $now = Carbon::now('Asia/Jakarta');
         $filename = sprintf(
             'Report TTR WSA - %s - %s.00 Wib.xlsx',
             $now->format('dmY'),
             $now->format('H')
         );
+
+        // Format current date and time for position text
+        $currentDate = $now->format('d/m/Y');
+        $currentHour = $now->format('H') . '.00';
+
+        // Format for Update text (with Indonesian month names)
+        $months = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        
+        $updateDate = sprintf(
+            "%02d %s %d",
+            $now->day,
+            $months[$now->month],
+            $now->year
+        );
+        $updateTime = $now->format('H') . ':00';
 
         // Load template with formatting
         $templateFile = 'Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx';
@@ -79,7 +98,7 @@ public function saveExcel(Request $request)
         $reader->setReadDataOnly(false);
         $spreadsheet = $reader->load($filePath);
         
-        // Select sheet 1
+        // Select sheet 1 for data
         $sheet = $spreadsheet->setActiveSheetIndex(0);
 
         // Get the last row with data
@@ -87,12 +106,10 @@ public function saveExcel(Request $request)
         $highestColumn = $sheet->getHighestDataColumn();
 
         // Clear existing content while preserving formatting
-        // Start from row 2 to preserve headers
         for ($row = 2; $row <= $highestRow; $row++) {
             for ($col = 'A'; $col <= $highestColumn; $col++) {
                 $cell = $sheet->getCell($col . $row);
                 if (!$cell->isFormula()) {
-                    // Clear content but preserve formatting
                     $cell->setValue(null);
                 }
             }
@@ -100,7 +117,7 @@ public function saveExcel(Request $request)
 
         // Process new data in chunks
         $chunkSize = 500;
-        $startRow = 2; // Start from row 2 (after header)
+        $startRow = 2;
         
         foreach (array_chunk($data, $chunkSize) as $chunk) {
             foreach ($chunk as $rowIndex => $rowData) {
@@ -111,7 +128,6 @@ public function saveExcel(Request $request)
                     $column = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnIndex + 1);
                     $cellCoordinate = $column . $currentRow;
                     
-                    // Only update cell if it's not a formula cell
                     $cell = $sheet->getCell($cellCoordinate);
                     if (!$cell->isFormula()) {
                         $cell->setValue($value);
@@ -123,6 +139,61 @@ public function saveExcel(Request $request)
             unset($chunk);
             gc_collect_cycles();
         }
+
+        // Try to update texts in all sheets
+        $sheetCount = $spreadsheet->getSheetCount();
+
+        for ($sheetIndex = 0; $sheetIndex < $sheetCount; $sheetIndex++) {
+            $currentSheet = $spreadsheet->setActiveSheetIndex($sheetIndex);
+            $sheetName = $currentSheet->getTitle();
+            Log::info("Processing sheet: " . $sheetName);
+            
+            $highestRow = $currentSheet->getHighestRow();
+
+            for ($row = 1; $row <= $highestRow; $row++) {
+                $cellValue = $currentSheet->getCell('A' . $row)->getValue();
+                
+                if ($cellValue) {
+                    // Update "posisi" text
+                    if (strpos(strtolower($cellValue), 'posisi') !== false) {
+                        $pattern = '/posisi\s+\d{2}\/\d{2}\/\d{4}\s+pukul\s+\d{2}\.\d{2}\s*WIB/i';
+                        $replacement = "posisi {$currentDate} pukul {$currentHour} WIB";
+                        
+                        $newValue = preg_replace($pattern, $replacement, $cellValue);
+                        if ($newValue !== $cellValue) {
+                            $currentSheet->setCellValue('A' . $row, $newValue);
+                        } else {
+                            $currentSheet->setCellValue('A' . $row, $replacement);
+                        }
+                    }
+                    
+                    // Update "Update:" text
+                    if (stripos($cellValue, 'Update:') !== false) {
+                        Log::info("Found Update text in sheet {$sheetName}, row {$row}: {$cellValue}");
+                        
+                        // More specific pattern for Update text
+                        $updatePattern = '/Update:\s*\d{2}\s+[A-Za-z]+\s+\d{4}\s+Pkl\s+\d{2}:\d{2}/i';
+                        $updateReplacement = "Update: {$updateDate} Pkl {$updateTime}";
+                        
+                        $newValue = preg_replace($updatePattern, $updateReplacement, $cellValue);
+                        
+                        if ($newValue !== $cellValue) {
+                            Log::info("Updating cell value from: {$cellValue}");
+                            Log::info("Updating cell value to: {$newValue}");
+                            $currentSheet->setCellValue('A' . $row, $newValue);
+                        } else {
+                            Log::info("Pattern match failed, using direct replacement");
+                            Log::info("Original value: {$cellValue}");
+                            Log::info("New value: {$updateReplacement}");
+                            $currentSheet->setCellValue('A' . $row, $updateReplacement);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Return to first sheet
+        $spreadsheet->setActiveSheetIndex(0);
 
         // Use memory-efficient writer
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
