@@ -26,9 +26,14 @@ class FileProcessController extends Controller
         ]);
 
         try {
-            // Memuat file Excel
-            $allTicketData = IOFactory::load($request->file('all_ticket')->getPathname())->getActiveSheet()->toArray(null, true, false, true);
-            $closeTicketData = IOFactory::load($request->file('close_ticket')->getPathname())->getActiveSheet()->toArray(null, true, false, true);
+          // Tambahkan identifikasi file yang lebih fleksibel
+          $reader = IOFactory::createReaderForFile($request->file('all_ticket')->getPathname());
+          $reader->setReadDataOnly(true);
+          $allTicketData = $reader->load($request->file('all_ticket')->getPathname())->getActiveSheet()->toArray(null, true, false, true);
+  
+          $reader = IOFactory::createReaderForFile($request->file('close_ticket')->getPathname());
+          $reader->setReadDataOnly(true);
+          $closeTicketData = $reader->load($request->file('close_ticket')->getPathname())->getActiveSheet()->toArray(null, true, false, true);
 
             // Mengambil header sebagai array
             $header = array_values($allTicketData[1]); // Mengambil header sebagai array
