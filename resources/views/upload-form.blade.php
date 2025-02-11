@@ -27,6 +27,8 @@
     </style>
 </head>
 @include('navbar')
+@include('components.timer-notification')
+
 <body class="bg-gray-100">
     <div class="bg-white shadow-md rounded-2xl p-4 sm:p-16 max-w-3xl mx-auto min-h-[300px] sm:min-h-[500px] mt-32">
         <h1 class="text-xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center">Unggah dan Gabungkan File</h1>
@@ -133,7 +135,8 @@
                 // Prepare message
                 const currentDate = new Date();
                 const formattedDate = currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                const formattedTime = currentDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                const hours = String(currentDate.getHours()).padStart(2, '0'); // Menambahkan nol di depan jika perlu
+                const formattedTime = `${hours}:00`; // Setel menit ke 00
                 const message = `*Report TTR WSA - ${formattedDate.replace(/\//g, '')} - ${formattedTime} WIB*\n\nReport has been generated on ${formattedDate} at ${formattedTime} WIB.\n\nPlease check the Excel file for complete details.`;
 
                 // Share to platform first
@@ -141,8 +144,7 @@
                     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
                     window.open(whatsappUrl, '_blank');
                 } else if (platform === 'telegram') {
-                    const telegramUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(message)}`;
-                    window.open(telegramUrl, '_blank');
+                    const telegramUrl = `https://t.me/share/url?url=https://example.com&text=${encodeURIComponent(message)}`;                    window.open(telegramUrl, '_blank');
                 }
 
                 // Download Excel

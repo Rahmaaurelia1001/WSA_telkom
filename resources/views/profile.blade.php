@@ -6,6 +6,8 @@
     <title>Profil Pengguna</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+@include('components.timer-notification')
+
 <body class="bg-gray-100">
     <!-- Header -->
     <div class="bg-white shadow-md flex justify-between items-center px-4 md:px-6 py-2 md:py-3 overflow-hidden">

@@ -12,26 +12,33 @@ use Illuminate\Support\Facades\Log;
 class AdminController extends Controller
 {
     public function dashboard()
-    {
-        try {
-            Log::info('Mengambil data dari tabel excel_downloads.');
+{
+    // Increase memory limit for large datasets
+    ini_set('memory_limit', '1024M');
 
-            // Ambil semua data dari tabel excel_downloads
-            $excelFiles = ExcelDownload::paginate(10);  // Anda bisa menyesuaikan pagination sesuai kebutuhan
+    try {
+        Log::info('Mengambil data dari tabel excel_downloads.');
 
-            // Log jumlah data yang ditemukan
-            Log::info('Ditemukan ' . $excelFiles->count() . ' record.');
+        // Ambil semua data dari tabel excel_downloads
+        $excelFiles = ExcelDownload::all(); // Fetch all records
 
-            if ($excelFiles->isEmpty()) {
-                Log::info('Tidak ada data di tabel excel_downloads.');
-            }
+        // Log jumlah data yang ditemukan
+        Log::info('Ditemukan ' . $excelFiles->count() . ' record.');
 
-            return view('dashboard.admin', compact('excelFiles'));
-        } catch (\Exception $e) {
-            Log::error('Terjadi kesalahan saat mengambil data: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat mengambil data.');
+        if ($excelFiles->isEmpty()) {
+            Log::info('Tidak ada data di tabel excel_downloads.');
         }
+
+        // Return the view with the data
+        return view('dashboard.admin', compact('excelFiles'));
+    } catch (\Exception $e) {
+        // Log the error message
+        Log::error('Terjadi kesalahan saat mengambil data: ' . $e->getMessage());
+
+        // Redirect back with an error message
+        return redirect()->back()->with('error', 'Terjadi kesalahan saat mengambil data.');
     }
+}
 
     public function navbarAdmin()
     {
