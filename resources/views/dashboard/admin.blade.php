@@ -151,9 +151,11 @@
                 </table>
             </div>
 
-            <!-- Pagination -->
-            <div class="mt-4">
-                {{ $excelFiles->links() }}
+            <!-- Pagination Controls -->
+            <div class="flex justify-between items-center mt-4">
+                <button id="prevPage" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors" onclick="changePage(-1)">Previous</button>
+                <span id="pageInfo" class="text-gray-700"></span>
+                <button id="nextPage" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors" onclick="changePage(1)">Next</button>
             </div>
         </div>
     </div>
@@ -181,6 +183,43 @@
 
         // Update current date display
         document.getElementById('currentDate').textContent = formatDate(new Date());
+
+        // Pagination variables
+        let currentPage = 1;
+        const rowsPerPage = 5; // Change this to the number of rows you want per page
+
+        function changePage(direction) {
+            currentPage += direction;
+            displayRows();
+        }
+
+        function displayRows() {
+            const table = document.getElementById('downloadsTable');
+            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+            const totalRows = rows.length;
+            const totalPages = Math.ceil(totalRows / rowsPerPage);
+
+            // Ensure currentPage is within bounds
+            if (currentPage < 1) currentPage = 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            // Hide all rows
+            for (let row of rows) {
+                row.style.display = 'none';
+            }
+
+            // Calculate start and end index for the current page
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+
+            // Show rows for the current page
+            for (let i = start; i < end && i < totalRows; i++) {
+                rows[i].style.display = '';
+            }
+
+            // Update page info
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+        }
 
         // Filter functions
         function applyFilters() {
@@ -229,6 +268,7 @@
             }
 
             calculateDownloads();
+            displayRows(); // Update the displayed rows after filtering
         }
 
         function resetFilters() {
@@ -249,6 +289,7 @@
             }
 
             calculateDownloads();
+            displayRows(); // Update the displayed rows after resetting
         }
 
         function calculateDownloads() {
@@ -358,6 +399,9 @@
         calculateDownloads();
         document.getElementById('rekapDateStart').textContent = formatDate(new Date());
         document.getElementById('rekapDateEnd').textContent = formatDate(new Date());
+
+        // Call displayRows initially to show the first page
+        displayRows();
 
         // Add event listeners for real-time filtering
         document.getElementById('searchFilename').addEventListener('input', applyFilters);

@@ -93,6 +93,7 @@ Route::middleware(['auth'])->group(function () {
         // Route::delete('/data/konstanta/{id}', [UserManagementController::class, 'deleteKonstanta'])->name('admin.data.deleteKonstanta');
         Route::get('/excel', [ExcelController::class, 'index'])->name('excel.index');
         Route::resource('excel', ExcelController::class);
+
         // Route::get('export/{fileId}', [ExcelController::class, 'export'])->name('export');
         // Route::delete('delete/{id}', [ExcelController::class, 'destroy'])->name('destroy');
 
@@ -117,6 +118,8 @@ Route::post('/add-row', [UserManagementController::class, 'addRow']);
 Route::post('/delete-cell', [UserManagementController::class, 'deleteCell']);
 Route::post('/add-column', [UserManagementController::class, 'addColumn']);
 Route::post('/update-cell', [UserManagementController::class, 'updateCell'])->name('update.cell');
+Route::post('/get-downloads', [AdminController::class, 'getDownloads']);
+
 
     // });
 });
