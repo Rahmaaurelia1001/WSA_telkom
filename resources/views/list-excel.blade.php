@@ -54,7 +54,7 @@
                                     {{ $file->downloaded_by }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {{ $file->created_at->format('d/m/Y H:i') }}
+                                    {{ $file->downloaded_at->format('d/m/Y H:i') }}
                                 </td>
                                 <!-- <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     @if($file->merged_data)
