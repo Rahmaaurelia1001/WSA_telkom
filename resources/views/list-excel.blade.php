@@ -10,6 +10,8 @@
 </head>
 <body class="bg-gray-100">
 @include('navbar')
+@include('components.timer-notification')
+
     <div class="container mx-auto mt-20 px-4 py-8">
         <div class="bg-white rounded-lg shadow-lg p-6">
             <div class="flex justify-between items-center mb-6">
