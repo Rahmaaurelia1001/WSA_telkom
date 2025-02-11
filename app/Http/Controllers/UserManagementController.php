@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use App\Models\ExcelDownload;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 
@@ -120,33 +121,251 @@ public function deleteKonstanta($id)
 }
 
 public function updateCell(Request $request)
-{
-    $request->validate([
-        'rowIndex' => 'required|integer',
-        'cellIndex' => 'required|integer',
-        'value' => 'required|string',
-    ]);
+    {
+        try {
+            // Validasi input
+            $request->validate([
+                'rowIndex' => 'required|integer',
+                'cellIndex' => 'required|integer',
+                'value' => 'required|string',
+            ]);
 
-    // Logic to update the specific cell in the database
-    // You will need to determine how to map rowIndex and cellIndex to your database structure
+            // Path ke file Excel
+            $filePath = storage_path('app/Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx');
 
-    // Example: Assuming you have a way to identify the row in your database
-    $markingData = MarkingData::find($request->rowIndex); // Adjust this logic as needed
-    if ($markingData) {
-        // Update the specific column based on cellIndex
-        // You will need to map cellIndex to the actual column name
-        $columns = ['service_type', 'customer_type', 'customer_segment', 'segmen', 'status', 'classification', 'status_closed', 'closed_reopen_by', 'ttr', 'marking_type', 'z'];
-        $columnName = $columns[$request->cellIndex];
+            // Cek apakah file ada
+            if (!file_exists($filePath)) {
+                throw new \Exception('Excel file not found at path: ' . $filePath);
+            }
 
-        $markingData->$columnName = $request->value;
-        $markingData->save();
+            // Load spreadsheet
+            $spreadsheet = IOFactory::load($filePath);
+            $worksheet = $spreadsheet->getActiveSheet();
 
-        return response()->json(['success' => true]);
+            // Konversi indeks kolom ke huruf
+            $columnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($request->cellIndex + 1);
+            $rowNumber = $request->rowIndex + 2; // +2 karena baris pertama adalah header
+
+            // Update sel dengan nilai baru
+            $worksheet->setCellValue($columnLetter . $rowNumber, $request->value);
+
+            // Simpan perubahan
+            $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+            $writer->save($filePath);
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            Log::error('Error updating Excel cell: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error updating cell: ' . $e->getMessage()], 500);
+        }
     }
 
-    return response()->json(['success' => false, 'message' => 'Data not found.']);
+public function addRow(Request $request)
+{
+    try {
+        // Increase limits for this operation
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
+        
+        $filePath = storage_path('app/Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx');
+        
+        if (!file_exists($filePath)) {
+            throw new \Exception('Excel file not found at: ' . $filePath);
+        }
+
+        // Use file locking to prevent concurrent access
+        $lockFile = storage_path('app/excel_lock');
+        $fp = fopen($lockFile, 'w+');
+        
+        if (!flock($fp, LOCK_EX | LOCK_NB)) {
+            throw new \Exception('File is being updated by another process');
+        }
+
+        try {
+            // Load the entire workbook first
+            $spreadsheet = IOFactory::load($filePath);
+            
+            // Check if the workbook has any sheets
+            if ($spreadsheet->getSheetCount() === 0) {
+                throw new \Exception('Excel file contains no sheets');
+            }
+
+            // Get the third sheet (index 2)
+            try {
+                $worksheet = $spreadsheet->getSheet(2); // Try to get sheet 3 (index 2)
+            } catch (\Exception $e) {
+                // If sheet 3 doesn't exist, use the first available sheet
+                $worksheet = $spreadsheet->getActiveSheet();
+                Log::warning('Sheet 3 not found, using active sheet instead');
+            }
+            
+            // Get dimensions
+            $highestRow = $worksheet->getHighestRow();
+            $highestColumn = $worksheet->getHighestColumn();
+            $columnCount = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestColumn);
+            
+            // Add empty cells in the new row
+            $rowData = array_fill(0, $columnCount, '');
+            $worksheet->fromArray(
+                [$rowData],
+                null,
+                'A' . ($highestRow + 1)
+            );
+            
+            // Optimize memory before saving
+            $spreadsheet->garbageCollect();
+
+            // Use temporary file to prevent corruption
+            $tempFile = $filePath . '.tmp';
+            $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+            $writer->setPreCalculateFormulas(false);
+            $writer->save($tempFile);
+
+            if (file_exists($tempFile)) {
+                rename($tempFile, $filePath);
+            }
+
+            // Clean up
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+            gc_collect_cycles();
+            
+            return response()->json([
+                'success' => true,
+                'newRowIndex' => $highestRow,
+                'columnCount' => $columnCount
+            ]);
+            
+        } finally {
+            // Make sure we always release the lock
+            if (isset($fp)) {
+                flock($fp, LOCK_UN);
+                fclose($fp);
+            }
+        }
+        
+    } catch (\Exception $e) {
+        Log::error('Error adding row: ' . $e->getMessage());
+        Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        return response()->json([
+            'success' => false, 
+            'message' => 'Error adding row: ' . $e->getMessage()
+        ], 500);
+    }
 }
 
+public function deleteCell(Request $request)
+{
+    try {
+        // Meningkatkan batas waktu eksekusi
+        set_time_limit(300); // 5 menit
+        ini_set('memory_limit', '512M'); // Meningkatkan batas memori
+
+        // Validasi input
+        $request->validate([
+            'rowIndex' => 'required|integer',
+            'cellIndex' => 'required|integer',
+        ]);
+
+        // Path ke file Excel
+        $filePath = storage_path('app/Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx');
+
+        // Cek apakah file ada
+        if (!file_exists($filePath)) {
+            throw new \Exception('Excel file not found at path: ' . $filePath);
+        }
+
+        // Gunakan file locking untuk mencegah akses bersamaan
+        $lockFile = storage_path('app/excel_lock');
+        $fp = fopen($lockFile, 'w+');
+
+        if (!flock($fp, LOCK_EX | LOCK_NB)) {
+            throw new \Exception('File is being updated by another process');
+        }
+
+        try {
+            // Load spreadsheet
+            $spreadsheet = IOFactory::load($filePath);
+            $worksheet = $spreadsheet->getActiveSheet();
+
+            // Konversi indeks kolom ke huruf
+            $columnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($request->cellIndex + 1);
+            $rowNumber = $request->rowIndex + 2; // +2 karena baris pertama adalah header
+
+            // Hapus isi sel
+            $worksheet->setCellValue($columnLetter . $rowNumber, '');
+
+            // Simpan perubahan
+            $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+            $writer->setPreCalculateFormulas(false); // Nonaktifkan perhitungan formula
+            $writer->save($filePath);
+
+            // Membersihkan memori
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+            gc_collect_cycles();
+
+            return response()->json(['success' => true]);
+        } finally {
+            // Pastikan untuk selalu melepaskan kunci
+            flock($fp, LOCK_UN);
+            fclose($fp);
+        }
+    } catch (\Exception $e) {
+        Log::error('Error deleting cell: ' . $e->getMessage());
+        return response()->json(['success' => false, 'message' => 'Error deleting cell: ' . $e->getMessage()], 500);
+    }
+}
+
+
+
+public function addColumn(Request $request)
+{
+    try {
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
+        $filePath = storage_path('app/Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx');
+        
+        if (!file_exists($filePath)) {
+            throw new \Exception('Excel file not found');
+        }
+
+        $spreadsheet = IOFactory::load($filePath);
+        $worksheet = $spreadsheet->getActiveSheet();
+        
+        // Get the highest column letter and convert to index
+        $highestColumn = $worksheet->getHighestColumn();
+        $columnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestColumn);
+        
+        // Get the new column letter
+        $newColumnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnIndex + 1);
+        
+        // Get column name from request
+        $columnName = $request->input('columnName', 'New Column');
+        
+        // Set the header for the new column
+        $worksheet->setCellValue($newColumnLetter . '1', $columnName);
+        
+        // Add empty cells in the new column
+        $lastRow = $worksheet->getHighestRow();
+        for ($row = 2; $row <= $lastRow; $row++) {
+            $worksheet->setCellValue($newColumnLetter . $row, '');
+        }
+        
+        $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+        $writer->save($filePath);
+        
+        return response()->json([
+            'success' => true,
+            'newColumnIndex' => $columnIndex,
+            'columnName' => $columnName
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Error adding column: ' . $e->getMessage());
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
 
 public function saveExcelData(Request $request)
 {
@@ -194,21 +413,45 @@ public function data()
 {
     try {
         $filePath = storage_path('app/Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx');
+
+        // Check if the file exists
+        if (!file_exists($filePath)) {
+            Log::error('Excel file not found at path: ' . $filePath);
+            return back()->with('error', 'Excel file not found.');
+        }
+
+        // Load the existing spreadsheet
         $reader = IOFactory::createReader('Xlsx');
         $spreadsheet = $reader->load($filePath);
-        
-        // Get sheet 3
+
+        // Check the number of sheets
+        $sheetCount = $spreadsheet->getSheetCount();
+        Log::info('Number of sheets in the Excel file: ' . $sheetCount);
+
+        // Ensure there is at least one sheet
+        if ($sheetCount < 1) {
+            Log::error('No sheets found in the Excel file.');
+            return back()->with('error', 'No sheets found in the Excel file.');
+        }
+
+        // Get sheet 3 if it exists
+        if ($sheetCount < 3) {
+            Log::error('Not enough sheets in the Excel file. Expected at least 3, found: ' . $sheetCount);
+            return back()->with('error', 'Not enough sheets in the Excel file.');
+        }
+
         $worksheet = $spreadsheet->getSheet(2); // Index 2 for sheet 3
         $data = $worksheet->toArray();
-        
-        // Get headers from first row
+
+        // Get headers from the first row
         $headers = array_shift($data);
-        
+
         return view('admin.data.add', [
             'headers' => $headers,
             'excelData' => $data
         ]);
     } catch (\Exception $e) {
+        Log::error('Error reading Excel file: ' . $e->getMessage());
         return back()->with('error', 'Error reading Excel file: ' . $e->getMessage());
     }
 }

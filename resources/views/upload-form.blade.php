@@ -78,8 +78,7 @@
                     <label class="block text-lg font-medium mb-2">Pilih Nilai:</label>
                     <div id="checkbox-container" class="grid grid-cols-5 gap-4 overflow-y-auto max-h-60 border border-gray-300 p-4 rounded">
                         <!-- Checkbox values will be populated here -->
-                    </div>
-                </div>
+                    </div> </div>
                 <button type="submit" class="w-auto bg-red-600 text-white py-1 px-4 rounded hover:bg-red-700 transition mt-4 float-right">
                     Hapus Data
                 </button>
@@ -115,24 +114,46 @@
             </table>
         </div>
         <button id="downloadExcel" class="mt-8 w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition">
-                    Download Excel
+            Download Excel
+        </button>
+        <div class="flex justify-center space-x-4 mt-8">
+            <button id="shareWhatsApp" class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition">
+                Share to WhatsApp
             </button>
+            <button id="shareTelegram" class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition">
+                Share to Telegram
+            </button>
+        </div>
     </div>
-@endif
-    
+    @endif
+
     <script>
-        document.getElementById('downloadExcel').addEventListener('click', async function() {
+        async function downloadAndShare(platform) {
             try {
-                // Ambil data dari session
+                // Prepare message
+                const currentDate = new Date();
+                const formattedDate = currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                const formattedTime = currentDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                const message = `*Report TTR WSA - ${formattedDate.replace(/\//g, '')} - ${formattedTime} WIB*\n\nReport has been generated on ${formattedDate} at ${formattedTime} WIB.\n\nPlease check the Excel file for complete details.`;
+
+                // Share to platform first
+                if (platform === 'whatsapp') {
+                    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+                    window.open(whatsappUrl, '_blank');
+                } else if (platform === 'telegram') {
+                    const telegramUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(message)}`;
+                    window.open(telegramUrl, '_blank');
+                }
+
+                // Download Excel
                 const mergedData = @json(session('merged_data', []));
-                
                 const response = await fetch('/api/save-excel', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     },
-                    body: JSON.stringify({ data: mergedData }) // Kirim data yang diambil dari session
+                    body: JSON.stringify({ data: mergedData })
                 });
 
                 if (!response.ok) {
@@ -140,110 +161,90 @@
                     throw new Error(errorData.error || 'Terjadi kesalahan saat mengunduh file.');
                 }
 
-                // Read the response as a blob
                 const blob = await response.blob();
-                const filename = response.headers.get('Content-Disposition').split('filename=')[1].replace(/"/g, ''); // Extract filename from headers
-
+                const filename = response.headers.get('Content-Disposition').split('filename=')[1].replace(/"/g, '');
                 const url = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = filename; // Use the filename from the server
+                link.download = filename;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
                 window.URL.revokeObjectURL(url);
             } catch (error) {
-                console.error('Error downloading file:', error);
-                alert('Gagal mengunduh file: ' + error.message);
+                console.error('Error:', error);
+                alert('Terjadi kes alahan: ' + error.message);
+            }
+        }
+
+        document.getElementById('downloadExcel').addEventListener('click', async function() {
+            await downloadAndShare();
+        });
+
+        document.getElementById('shareWhatsApp').addEventListener('click', async function() {
+            await downloadAndShare('whatsapp');
+        });
+
+        document.getElementById('shareTelegram').addEventListener('click', async function() {
+            await downloadAndShare('telegram');
+        });
+
+        const columnSelect = document.getElementById('column-select');
+        const checkboxContainer = document.getElementById('checkbox-container');
+        const mergedData = Array.isArray({!! json_encode(session('merged_data', [])) !!}) 
+            ? {!! json_encode(session('merged_data', [])) !!} 
+            : Object.values({!! json_encode(session('merged_data', [])) !!});
+        const header = Array.isArray({!! json_encode(session('header', [])) !!})
+            ? {!! json_encode(session('header', [])) !!}
+            : Object.values({!! json_encode(session('header', [])) !!});
+
+        function populateCheckboxes() {
+            checkboxContainer.innerHTML = '';
+            const selectedColumn = columnSelect.value;
+            let columnIndex = -1;
+            for (let i = 0; i < header.length; i++) {
+                if (header[i] === selectedColumn) {
+                    columnIndex = i;
+                    break;
+                }
+            }
+            if (columnIndex === -1) return;
+            const values = new Set();
+            mergedData.forEach(row => {
+                const rowData = Array.isArray(row) ? row : Object.values(row);
+                if (rowData[columnIndex] != null && rowData[columnIndex] !== '') {
+                    values.add(rowData[columnIndex]);
+                }
+            });
+            const sortedValues = Array.from(values).sort((a, b) => 
+                String(a).localeCompare(String(b), undefined, {numeric: true, sensitivity: 'base'})
+            );
+            sortedValues.forEach(value => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex items-center mb-2';
+                const label = document.createElement('label');
+                label.className = 'flex items-center space-x-2 cursor-pointer p-2 hover:bg-gray-50 rounded w-full';
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.name = 'value[]';
+                input.value = value;
+                input.className = 'form-checkbox h-4 w-4 text-red-600 rounded';
+                const span = document.createElement('span');
+                span.className = 'ml-2 text-sm text-gray-700';
+                span.textContent = value;
+                label.appendChild(input);
+                label.appendChild(span);
+                wrapper.appendChild(label);
+                checkboxContainer.appendChild(wrapper);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (columnSelect && checkboxContainer) {
+                columnSelect.addEventListener('change', populateCheckboxes);
+                populateCheckboxes();
             }
         });
     </script>
-    <script>
-// Ensure data is properly converted to arrays
-const columnSelect = document.getElementById('column-select');
-const checkboxContainer = document.getElementById('checkbox-container');
-
-// Convert data to arrays if they're not already
-const mergedData = Array.isArray({!! json_encode(session('merged_data', [])) !!}) 
-    ? {!! json_encode(session('merged_data', [])) !!} 
-    : Object.values({!! json_encode(session('merged_data', [])) !!});
-
-const header = Array.isArray({!! json_encode(session('header', [])) !!})
-    ? {!! json_encode(session('header', [])) !!}
-    : Object.values({!! json_encode(session('header', [])) !!});
-
-function populateCheckboxes() {
-    // Clear existing checkboxes
-    checkboxContainer.innerHTML = '';
-    
-    // Get selected column
-    const selectedColumn = columnSelect.value;
-    
-    // Find column index without using indexOf
-    let columnIndex = -1;
-    for (let i = 0; i < header.length; i++) {
-        if (header[i] === selectedColumn) {
-            columnIndex = i;
-            break;
-        }
-    }
-    
-    if (columnIndex === -1) return;
-    
-    // Collect all values for the selected column
-    const values = new Set();
-    
-    mergedData.forEach(row => {
-        const rowData = Array.isArray(row) ? row : Object.values(row);
-        if (rowData[columnIndex] != null && rowData[columnIndex] !== '') {
-            values.add(rowData[columnIndex]);
-        }
-    });
-    
-    // Convert to array and sort
-    const sortedValues = Array.from(values).sort((a, b) => 
-        String(a).localeCompare(String(b), undefined, {numeric: true, sensitivity: 'base'})
-    );
-    
-    // Create checkboxes
-    sortedValues.forEach(value => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'flex items-center mb-2';
-        
-        const label = document.createElement('label');
-        label.className = 'flex items-center space-x-2 cursor-pointer p-2 hover:bg-gray-50 rounded w-full';
-        
-        const input = document.createElement('input');
-        input.type = 'checkbox';
-        input.name = 'value[]';
-        input.value = value;
-        input.className = 'form-checkbox h-4 w-4 text-red-600 rounded';
-        
-        const span = document.createElement('span');
-        span.className = 'ml-2 text-sm text-gray-700';
-        span.textContent = value;
-        
-        label.appendChild(input);
-        label.appendChild(span);
-        wrapper.appendChild(label);
-        checkboxContainer.appendChild(wrapper);
-    });
-}
-
-// Add event listeners
-document.addEventListener('DOMContentLoaded', function() {
-    if (columnSelect && checkboxContainer) {
-        // Log data for debugging
-        // console.log('Header:', header);
-        // console.log('Merged Data:', mergedData);
-        
-        // Add change event listener
-        columnSelect.addEventListener('change', populateCheckboxes);
-        
-        // Populate initial values
-        populateCheckboxes();
-    }
-});
-</script>
 </body>
 </html>

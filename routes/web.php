@@ -32,6 +32,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/users', [UserController::class,'user'])->name('user');
     Route::get('/history', [UserController::class, 'history'])->name('history');
     Route::post('/api/download-excel', [ExcelController::class, 'downloadExcel']);
+    Route::get('/admin/navbar-admin', [AdminController::class, 'navbarAdmin'])->name('navbar-admin');
+    Route::get('/admin/downloads', [AdminController::class, 'downloadRecords'])->name('admin.downloads');
+
     
     // Halaman dashboard untuk admin
     // Route::middleware(['auth', 'role:admin'])->group(function () {
@@ -51,6 +54,7 @@ Route::middleware(['auth'])->group(function () {
     // Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
         // Route::post('/download-excel', [ExcelController::class, 'downloadExcel']);
+        
         // routes/web.php
         Route::post('/api/save-excel', [ExcelController::class, 'saveExcel']);
         Route::get('/api/download-excel', [ExcelController::class, 'downloadExcel']);
@@ -109,7 +113,9 @@ Route::post('/api/save-excel', [FileProcessController::class, 'saveExcel']);
 Route::get('/konstanta', [ExcelDisplayController::class, 'index'])->name('konstanta.index');
 Route::post('/excel/update', [ExcelDisplayController::class, 'update'])->name('excel.update');
 Route::post('/save-excel-data', [UserManagementController::class, 'saveExcelData'])->name('save.excel.data');
-
+Route::post('/add-row', [UserManagementController::class, 'addRow']);
+Route::post('/delete-cell', [UserManagementController::class, 'deleteCell']);
+Route::post('/add-column', [UserManagementController::class, 'addColumn']);
 Route::post('/update-cell', [UserManagementController::class, 'updateCell'])->name('update.cell');
 
     // });

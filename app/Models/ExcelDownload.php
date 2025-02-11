@@ -13,8 +13,14 @@ class ExcelDownload extends Model
     protected $fillable = [
         'filename', 
         'downloaded_by', 
+        'downloaded_at',
         'created_at', 
         'merged_data', 
         'processed_data',
+    ];
+
+    protected $casts = [
+        'downloaded_at' => 'datetime', // Pastikan ini ada
+        'created_at' => 'datetime',
     ];
 }

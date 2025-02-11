@@ -5,13 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sticky Navbar</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
 </head>
+
 <body class="bg-gray-100">
     <!-- Header -->
     <div class="bg-white shadow-md fixed top-0 left-0 w-full z-50 flex justify-between items-center px-4 py-3">
         <img src="/images/logo-telkom.png" alt="Telkom Indonesia" class="h-10"> <!-- Ukuran logo diperkecil -->
 
         <div class="relative flex items-center space-x-2">
+        <button onclick="window.history.back()" class="text-xs text-gray-600 hover:text-red-500 hover:underline cursor-pointer focus:outline-none">
+    Back
+</button>
+
+
             <div class="bg-gray-300 rounded-full p-2">
                 <img src="/images/user.png" alt="User" class="w-6 h-6 text-gray-600"> <!-- Ikon user lebih kecil -->
             </div>
@@ -60,5 +67,7 @@
             }
         });
     </script>
+    
+
 </body>
 </html>
