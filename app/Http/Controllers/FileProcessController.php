@@ -21,47 +21,28 @@ class FileProcessController extends Controller
     public function process(Request $request)
     {
         $request->validate([
-            'all_ticket' => 'required|file|max:10240',
-            'close_ticket' => 'required|file|max:10240',
+            'all_ticket' => 'required|file|max:10240|mimes:xlsx,xls',
+            'close_ticket' => 'required|file|max:10240|mimes:xlsx,xls',
         ]);
 
         try {
-            // Fungsi untuk membaca file Excel
-            $readExcel = function($file) {
-                // Baca file sebagai string
-                $content = file_get_contents($file->getPathname());
-                
-                // Simpan ke temporary file dengan nama baru
-                $tempFile = tempnam(sys_get_temp_dir(), 'excel_');
-                file_put_contents($tempFile, $content);
-                
-                // Baca dengan PhpSpreadsheet
-                $reader = IOFactory::createReader('Xlsx');
-                $reader->setReadDataOnly(true);
-                $spreadsheet = $reader->load($tempFile);
-                
-                // Ambil data
-                $data = $spreadsheet->getActiveSheet()->toArray(null, true, false, true);
-                
-                // Bersihkan temporary file
-                unlink($tempFile);
-                
-                return $data;
-            };
+            // Memuat file Excel
+            $allTicketData = IOFactory::load($request->file('all_ticket')->getPathname())->getActiveSheet()->toArray(null, true, false, true);
+            $closeTicketData = IOFactory::load($request->file('close_ticket')->getPathname())->getActiveSheet()->toArray(null, true, false, true);
 
-            // Baca kedua file
-            $allTicketData = $readExcel($request->file('all_ticket'));
-            $closeTicketData = $readExcel($request->file('close_ticket'));
-
-            // Proses data seperti biasa
-            $header = array_values($allTicketData[1]);
+            // Mengambil header sebagai array
+            $header = array_values($allTicketData[1]); // Mengambil header sebagai array
             $mergedData = array_merge(array_slice($allTicketData, 2), array_slice($closeTicketData, 2));
 
-            session(['merged_data' => $mergedData, 'header' => $header]);
+            // Simpan data ke session
+            session(['merged_data' => $mergedData, 'header' => $header]); // Simpan header sebagai array
             session()->flash('success_message', 'File berhasil digabungkan.');
 
-            return redirect()->route('upload.form');
+            // Debug log untuk memeriksa format
+            Log::info('Header:', $header);
+            Log::info('Merged Data:', $mergedData);
 
+            return redirect()->route('upload.form');
         } catch (\Exception $e) {
             Log::error('Error processing files: ' . $e->getMessage());
             return back()->withErrors(['msg' => 'Terjadi kesalahan saat memproses file: ' . $e->getMessage()]);
