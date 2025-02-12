@@ -83,7 +83,7 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Search by User</label>
-                        <input type="text" id="searchUser " placeholder="Search user..." 
+                        <input type="text" id="searchUser" placeholder="Search user..." 
                             class="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500">
                     </div>
                 </div>
@@ -120,7 +120,7 @@
                         </div>
                     </div>
                     <canvas id="downloadsChart" class="h-48"></canvas>
-                    <ul id="downloadsPerUser " class="space-y-2 mt-4"></ul>
+                    <ul id="downloadsPerUser" class="space-y-2 mt-4"></ul>
                 </div>
             </div>
 
@@ -195,7 +195,8 @@
         function displayRows() {
             const table = document.getElementById('downloadsTable');
             const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-            const totalRows = rows.length;
+            const visibleRows = Array.from(rows).filter(row => row.style.display !== 'none');
+            const totalRows = visibleRows.length;
             const totalPages = Math.ceil(totalRows / rowsPerPage);
 
             // Ensure currentPage is within bounds
@@ -213,7 +214,7 @@
 
             // Show rows for the current page
             for (let i = start; i < end && i < totalRows; i++) {
-                rows[i].style.display = '';
+                visibleRows[i].style.display = '';
             }
 
             // Update page info
@@ -225,7 +226,7 @@
             const dateStart = document.getElementById('dateStart').value;
             const dateEnd = document.getElementById('dateEnd').value;
             const searchFilename = document.getElementById('searchFilename').value.toLowerCase();
-            const searchUser  = document.getElementById('searchUser ').value.toLowerCase();
+            const searchUser = document.getElementById('searchUser').value.toLowerCase();
 
             // Update rekap date range display
             document.getElementById('rekapDateStart').textContent = dateStart ? formatDate(new Date(dateStart)) : formatDate(new Date());
@@ -259,7 +260,7 @@
                 }
 
                 // User filter
-                if (searchUser  && !user.includes(searchUser )) {
+                if (searchUser && !user.includes(searchUser)) {
                     showRow = false;
                 }
 
@@ -274,7 +275,7 @@
             document.getElementById('dateStart').value = '';
             document.getElementById('dateEnd').value = '';
             document.getElementById('searchFilename').value = '';
-            document.getElementById('searchUser ').value = '';
+            document.getElementById('searchUser').value = '';
 
             // Reset date displays
             document.getElementById('rekapDateStart').textContent = formatDate(new Date());
@@ -291,11 +292,12 @@
             displayRows(); // Update the displayed rows after resetting
         }
 
+        // Fungsi calculateDownloads() menghitung SEMUA BARIS, tidak peduli apakah baris tersebut terlihat atau tidak
         function calculateDownloads() {
             const downloadsTable = document.getElementById('downloadsTable');
             const rows = downloadsTable.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
             const totalDownloadsToday = document.getElementById('totalDownloadsToday');
-            const downloadsPerUser  = document.getElementById('downloadsPerUser ');
+            const downloadsPerUser = document.getElementById('downloadsPerUser');
 
             let userDownloadCount = {};
             let today = new Date();
@@ -303,21 +305,20 @@
 
             let totalCount = 0;
 
+            // Loop melalui SEMUA BARIS, tidak peduli apakah baris tersebut terlihat atau tidak
             for (let row of rows) {
-                if (row.style.display !== 'none') {
-                    const downloadedBy = row.cells[1].innerText;
-                    const downloadedAt = new Date(row.cells[2].innerText);
+                const downloadedBy = row.cells[1].innerText;
+                const downloadedAt = new Date(row.cells[2].innerText);
 
-                    if (downloadedAt >= today) {
-                        totalCount++;
-                        userDownloadCount[downloadedBy] = (userDownloadCount[downloadedBy] || 0) + 1;
-                    }
+                if (downloadedAt >= today) {
+                    totalCount++;
+                    userDownloadCount[downloadedBy] = (userDownloadCount[downloadedBy] || 0) + 1;
                 }
             }
 
             totalDownloadsToday.innerText = totalCount;
 
-            downloadsPerUser .innerHTML = '';
+            downloadsPerUser.innerHTML = '';
             const chartData = {
                 labels: [],
                 data: []
@@ -332,13 +333,13 @@
                         <span>${user}</span>
                         <span class="font-semibold">${count} kali</span>
                     `;
-                    downloadsPerUser .appendChild(li);
+                    downloadsPerUser.appendChild(li);
                     chartData.labels.push(user);
                     chartData.data.push(count);
                 });
 
-            if (downloadsPerUser .children.length === 0) {
-                downloadsPerUser .innerHTML = '<li class="text-gray-500 italic text-center">No data available</li>';
+            if (downloadsPerUser.children.length === 0) {
+                downloadsPerUser.innerHTML = '<li class="text-gray-500 italic text-center">No data available</li>';
             }
 
             updateChart(chartData);
@@ -404,7 +405,7 @@
 
         // Add event listeners for real-time filtering
         document.getElementById('searchFilename').addEventListener('input', applyFilters);
-        document.getElementById('searchUser ').addEventListener('input', applyFilters);
+        document.getElementById('searchUser').addEventListener('input', applyFilters);
     </script>
 </body>
 </html>

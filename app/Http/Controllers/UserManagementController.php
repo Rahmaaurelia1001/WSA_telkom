@@ -34,27 +34,27 @@ class UserManagementController extends Controller
         return view('admin.data.editkonstanta', compact('konstanta'));
     }
     public function updateKonstanta(Request $request, $id)
-{
-    // Validasi input
-    $request->validate([
-        'column' => 'required|string',
-        'value' => 'required|string',
-    ]);
+    {
+        // Validasi input
+        $request->validate([
+            'column' => 'required|string',
+            'value' => 'required|string',
+        ]);
 
-    // Ambil data yang akan diupdate
-    $konstanta = DB::table('marking_data')->where('id', $id)->first();
+        // Ambil data yang akan diupdate
+        $konstanta = DB::table('marking_data')->where('id', $id)->first();
 
-    if (!$konstanta) {
-        return redirect()->route('admin.data.add')->with('error', 'Data tidak ditemukan.');
+        if (!$konstanta) {
+            return redirect()->route('admin.data.add')->with('error', 'Data tidak ditemukan.');
+        }
+
+        // Hanya memperbarui kolom yang dipilih
+        DB::table('marking_data')->where('id', $id)->update([
+            $request->column => $request->value,
+        ]);
+
+        return redirect()->route('admin.data.add')->with('success', 'Konstanta berhasil diperbarui.');
     }
-
-    // Hanya memperbarui kolom yang dipilih
-    DB::table('marking_data')->where('id', $id)->update([
-        $request->column => $request->value,
-    ]);
-
-    return redirect()->route('admin.data.add')->with('success', 'Konstanta berhasil diperbarui.');
-}
 
     
 
@@ -111,45 +111,70 @@ public function deleteKonstanta($id)
     }
 }
 
-    public function updateCell(Request $request)
-    {
-        try {
-            // Validasi input
-            $request->validate([
-                'rowIndex' => 'required|integer',
-                'cellIndex' => 'required|integer',
-                'value' => 'required|string',
-            ]);
+public function updateCell(Request $request)
+{
+    try {
+        // Validasi input
+        $request->validate([
+            'rowIndex' => 'required|integer',
+            'cellIndex' => 'required|integer',
+            'value' => 'required|string',
+        ]);
 
-            // Path ke file Excel
-            $filePath = storage_path('app/Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx');
+        $filePath = storage_path('app/Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx');
+        $tempPath = storage_path('app/temp_' . uniqid() . '.xlsx');
 
-            // Cek apakah file ada
-            if (!file_exists($filePath)) {
-                throw new \Exception('Excel file not found at path: ' . $filePath);
-            }
-
-            // Load spreadsheet
-            $spreadsheet = IOFactory::load($filePath);
-            $worksheet = $spreadsheet->getActiveSheet();
-
-            // Konversi indeks kolom ke huruf
-            $columnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($request->cellIndex + 1);
-            $rowNumber = $request->rowIndex + 2; // +2 karena baris pertama adalah header
-
-            // Update sel dengan nilai baru
-            $worksheet->setCellValue($columnLetter . $rowNumber, $request->value);
-
-            // Simpan perubahan
-            $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
-            $writer->save($filePath);
-
-            return response()->json(['success' => true]);
-        } catch (\Exception $e) {
-            Log::error('Error updating Excel cell: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Error updating cell: ' . $e->getMessage()], 500);
+        if (!file_exists($filePath)) {
+            throw new \Exception('Excel file not found at path: ' . $filePath);
         }
+
+        // Gunakan cached reader untuk mempercepat loading
+        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
+        $reader->setReadDataOnly(false);
+        
+        // Load spreadsheet ke memory
+        $spreadsheet = $reader->load($filePath);
+        $worksheet = $spreadsheet->getActiveSheet();
+
+        // Konversi indeks dan update sel
+        $columnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($request->cellIndex + 1);
+        $rowNumber = $request->rowIndex + 2;
+        $worksheet->setCellValue($columnLetter . $rowNumber, $request->value);
+
+        // Optimasi writer
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->setPreCalculateFormulas(false);
+        $writer->setUseDiskCaching(true);
+        $writer->setOffice2003Compatibility(false);
+        
+        // Simpan ke file temporary dulu
+        $writer->save($tempPath);
+        
+        // Pindahkan file temporary ke file asli (lebih cepat dari langsung save)
+        if (file_exists($tempPath)) {
+            if (file_exists($filePath)) {
+                unlink($filePath);
+            }
+            rename($tempPath, $filePath);
+        }
+
+        // Bersihkan memory
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+        unset($writer);
+        gc_collect_cycles();
+
+        return response()->json(['success' => true]);
+    } catch (\Exception $e) {
+        // Bersihkan file temporary jika ada error
+        if (isset($tempPath) && file_exists($tempPath)) {
+            unlink($tempPath);
+        }
+        
+        Log::error('Error updating Excel cell: ' . $e->getMessage());
+        return response()->json(['success' => false, 'message' => 'Error updating cell: ' . $e->getMessage()], 500);
     }
+}
 
 public function addRow(Request $request)
 {
