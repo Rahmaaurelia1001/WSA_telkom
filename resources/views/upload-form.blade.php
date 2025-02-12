@@ -77,10 +77,15 @@
                     </select>
                 </div>
                 <div class="mb-4">
+                    <label class="block text-lg font-medium mb-2">Cari Nilai:</label>
+                    <input type="text" id="search-input" class="border rounded w-full p-2 text-lg" placeholder="Ketik untuk mencari...">
+                </div>
+                <div class="mb-4">
                     <label class="block text-lg font-medium mb-2">Pilih Nilai:</label>
                     <div id="checkbox-container" class="grid grid-cols-5 gap-4 overflow-y-auto max-h-60 border border-gray-300 p-4 rounded">
                         <!-- Checkbox values will be populated here -->
-                    </div> </div>
+                    </div>
+                </div>
                 <button type="submit" class="w-auto bg-red-600 text-white py-1 px-4 rounded hover:bg-red-700 transition mt-4 float-right">
                     Hapus Data
                 </button>
@@ -132,22 +137,20 @@
     <script>
         async function downloadAndShare(platform) {
             try {
-                // Prepare message
                 const currentDate = new Date();
                 const formattedDate = currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                const hours = String(currentDate.getHours()).padStart(2, '0'); // Menambahkan nol di depan jika perlu
-                const formattedTime = `${hours}:00`; // Setel menit ke 00
+                const hours = String(currentDate.getHours()).padStart(2, '0');
+                const formattedTime = `${hours}:00`;
                 const message = `*Report TTR WSA - ${formattedDate.replace(/\//g, '')} - ${formattedTime} WIB*\n\nReport has been generated on ${formattedDate} at ${formattedTime} WIB.\n\nPlease check the Excel file for complete details.`;
 
-                // Share to platform first
                 if (platform === 'whatsapp') {
                     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
                     window.open(whatsappUrl, '_blank');
                 } else if (platform === 'telegram') {
-                    const telegramUrl = `https://t.me/share/url?url=https://example.com&text=${encodeURIComponent(message)}`;                    window.open(telegramUrl, '_blank');
+                    const telegramUrl = `https://t.me/share/url?url=https://example.com&text=${encodeURIComponent(message)}`;
+                    window.open(telegramUrl, '_blank');
                 }
 
-                // Download Excel
                 const mergedData = @json(session('merged_data', []));
                 const response = await fetch('/api/save-excel', {
                     method: 'POST',
@@ -175,7 +178,7 @@
                 window.URL.revokeObjectURL(url);
             } catch (error) {
                 console.error('Error:', error);
-                alert('Terjadi kes alahan: ' + error.message);
+                alert('Terjadi kesalahan: ' + error.message);
             }
         }
 
@@ -193,6 +196,7 @@
 
         const columnSelect = document.getElementById('column-select');
         const checkboxContainer = document.getElementById('checkbox-container');
+        const searchInput = document.getElementById('search-input');
         const mergedData = Array.isArray({!! json_encode(session('merged_data', [])) !!}) 
             ? {!! json_encode(session('merged_data', [])) !!} 
             : Object.values({!! json_encode(session('merged_data', [])) !!});
@@ -240,6 +244,20 @@
                 checkboxContainer.appendChild(wrapper);
             });
         }
+
+        searchInput.addEventListener('input', function() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const checkboxes = checkboxContainer.querySelectorAll('div');
+
+            checkboxes.forEach(checkbox => {
+                const label = checkbox.querySelector('span').textContent.toLowerCase();
+                if (label.includes(searchTerm)) {
+                    checkbox.style.display = 'flex'; // Tampilkan checkbox
+                } else {
+                    checkbox.style.display = 'none'; // Sembunyikan checkbox
+                }
+            });
+        });
 
         document.addEventListener('DOMContentLoaded', function() {
             if (columnSelect && checkboxContainer) {
