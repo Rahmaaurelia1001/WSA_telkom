@@ -73,19 +73,10 @@ public function deleteKonstanta($id)
     // Redirect ke halaman index data marking setelah berhasil dihapus
     return redirect()->route('admin.data.add')->with('success', 'Konstanta berhasil dihapus.');
 }
-
-
-
-
-
-
-
-
-
-
     public function createUser(Request $request)
 {
-    \Log::info('Incoming request data:', $request->all());
+    \Log::info('
+    Incoming request data:', $request->all());
 
     try {
         // Validasi input termasuk role
@@ -120,7 +111,7 @@ public function deleteKonstanta($id)
     }
 }
 
-public function updateCell(Request $request)
+    public function updateCell(Request $request)
     {
         try {
             // Validasi input

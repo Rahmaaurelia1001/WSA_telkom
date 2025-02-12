@@ -7,37 +7,164 @@
     <title>Excel Data Editor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- Add FontAwesome for better icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <style>
+        .fade-enter {
+            opacity: 0;
+        }
+        .fade-enter-active {
+            opacity: 1;
+            transition: opacity 200ms ease-in;
+        }
+        .fade-exit {
+            opacity: 1;
+        }
+        .fade-exit-active {
+            opacity: 0;
+            transition: opacity 200ms ease-in;
+        }
+        
+        .delete-button {
+            opacity: 0;
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .cell-wrapper:hover .delete-button {
+            opacity: 1;
+        }
+        
+        .saving-indicator {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    @include('admin/navbar-admin')
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-xl shadow-lg flex items-center gap-3">
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
+            <span class="text-gray-700 font-medium">Processing...</span>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification" class="hidden fixed top-4 right-4 max-w-md transform transition-all duration-300 z-50">
+        <div class="flex items-center p-4 rounded-lg shadow-lg">
+            <div class="flex-shrink-0 mr-3">
+                <i class="fas fa-check-circle text-xl notification-icon"></i>
+            </div>
+            <div class="flex-1 notification-message"></div>
+        </div>
+    </div>
+
+    <div class="container mx-auto py-8 px-4">
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <!-- Header Section -->
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Excel Data Editor</h2>
+                    <div class="flex gap-3">
+                        <button onclick="addNewRow()" 
+                                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 flex items-center gap-2">
+                            <i class="fas fa-plus text-sm"></i>
+                            <span>Add Row</span>
+                        </button>
+                        <button onclick="addNewColumn()" 
+                                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 flex items-center gap-2">
+                            <i class="fas fa-plus text-sm"></i>
+                            <span>Add Column</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Table Section -->
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                @foreach ($headers as $header)
+                                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-900 border-b">
+                                        {{ $header }}
+                                    </th>
+                                @endforeach
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            @foreach ($excelData as $rowIndex => $row)
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    @foreach ($row as $cellIndex => $cell)
+                                        <td class="py-4 px-6" id="cell-{{ $rowIndex }}-{{ $cellIndex }}">
+                                            <div class="cell-wrapper flex items-center gap-3 min-h-[2rem]">
+                                                <div class="cell-content outline-none flex-1 px-2 py-1 rounded hover:bg-gray-100 focus:bg-white focus:ring-2 focus:ring-red-200 transition-all"
+                                                     contenteditable="true"
+                                                     onblur="handleUpdate(this, {{ $rowIndex }}, {{ $cellIndex }})"
+                                                     oninput="handleInput(this, {{ $rowIndex }}, {{ $cellIndex }})">
+                                                    {{ $cell }}
+                                                </div>
+                                                <button onclick="confirmDelete({{ $rowIndex }}, {{ $cellIndex }})" 
+                                                        class="delete-button p-1.5 hover:bg-red-50 rounded-lg group transition-all">
+                                                    <i class="fas fa-trash-alt text-red-500 group-hover:text-red-600 text-sm"></i>
+                                                </button>
+                                                <span class="status-indicator text-xs text-gray-400 w-16 text-right"></span>
+                                            </div>
+                                        </td>
+                                    @endforeach
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Footer Section -->
+            <div class="p-6 bg-gray-50 border-t">
+                <a href="{{ route('dashboard') }}" 
+                   class="block w-full text-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 flex items-center justify-center gap-2">
+                    <i class="fas fa-arrow-left text-sm"></i>
+                    <span>Kembali ke Dashboard</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Configure Axios to always include CSRF token
+        // Configure Axios
         axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]')?.content;
         
         let debounceTimers = {};
         
-        function initializeEditor(cell, rowIndex, cellIndex, currentValue) {
-            const cellElement = document.getElementById(`cell-${rowIndex}-${cellIndex}`);
-            if (!cellElement) return;
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const notificationIcon = notification.querySelector('.notification-icon');
+            const notificationMessage = notification.querySelector('.notification-message');
+            
+            // Set styles based on type
+            if (type === 'success') {
+                notification.firstElementChild.className = 'flex items-center p-4 bg-green-50 border border-green-200 rounded-lg shadow-lg';
+                notificationIcon.className = 'fas fa-check-circle text-xl text-green-500';
+            } else {
+                notification.firstElementChild.className = 'flex items-center p-4 bg-red-50 border border-red-200 rounded-lg shadow-lg';
+                notificationIcon.className = 'fas fa-exclamation-circle text-xl text-red-500';
+            }
+            
+            notificationMessage.textContent = message;
+            notification.classList.remove('hidden');
+            
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 3000);
+        }
 
-            // Create contenteditable div for inline editing
-            cellElement.innerHTML = `
-                <div class="flex items-center">
-                    <div 
-                        class="cell-content outline-none min-h-[1.5rem]" 
-                        contenteditable="true"
-                        onblur="handleUpdate(this, ${rowIndex}, ${cellIndex})"
-                        oninput="handleInput(this, ${rowIndex}, ${cellIndex})"
-                    >${currentValue}</div>
-                    <button 
-                        onclick="handleDelete(${rowIndex}, ${cellIndex})" 
-                        class="ml-2 text-red-500 hover:text-red-700 focus:outline-none"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
-                    <span class="ml-2 text-xs text-gray-400 status-indicator"></span>
-                </div>
-            `;
+        function confirmDelete(rowIndex, cellIndex) {
+            if (confirm('Are you sure you want to delete this cell content?')) {
+                handleDelete(rowIndex, cellIndex);
+            }
         }
 
         function handleInput(element, rowIndex, cellIndex) {
@@ -46,14 +173,13 @@
             const statusIndicator = element.parentElement?.querySelector('.status-indicator');
             if (statusIndicator) {
                 statusIndicator.textContent = 'Editing...';
+                statusIndicator.className = 'status-indicator text-xs text-blue-500 w-16 text-right';
             }
 
-            // Clear existing timer
             if (debounceTimers[`${rowIndex}-${cellIndex}`]) {
                 clearTimeout(debounceTimers[`${rowIndex}-${cellIndex}`]);
             }
 
-            // Set new timer
             debounceTimers[`${rowIndex}-${cellIndex}`] = setTimeout(() => {
                 handleUpdate(element, rowIndex, cellIndex);
             }, 500);
@@ -63,11 +189,12 @@
             if (!element) return;
 
             const newValue = element.textContent || '';
-            const statusIndicator = element.parentElement?.querySelector('.status-indicator');
+            const statusIndicator = element.closest('.cell-wrapper')?.querySelector('.status-indicator');
             
             try {
                 if (statusIndicator) {
                     statusIndicator.textContent = 'Saving...';
+                    statusIndicator.className = 'status-indicator text-xs text-yellow-500 w-16 text-right';
                 }
                 
                 const response = await axios.post('/update-cell', {
@@ -79,28 +206,21 @@
                 if (response.data.success) {
                     if (statusIndicator) {
                         statusIndicator.textContent = 'Saved';
-                        statusIndicator.classList.remove('text-red-500');
-                        statusIndicator.classList.add('text-green-500');
+                        statusIndicator.className = 'status-indicator text-xs text-green-500 w-16 text-right';
                         
                         setTimeout(() => {
-                            if (statusIndicator) {
-                                statusIndicator.textContent = '';
-                            }
+                            statusIndicator.textContent = '';
                         }, 2000);
                     }
-                } else {
-                    throw new Error(response.data.message || 'Failed to save');
+                    showNotification('Changes saved successfully');
                 }
             } catch (error) {
                 console.error('Error updating cell:', error);
                 if (statusIndicator) {
-                    statusIndicator.textContent = 'Error saving!';
-                    statusIndicator.classList.remove('text-green-500');
-                    statusIndicator.classList.add('text-red-500');
+                    statusIndicator.textContent = 'Error!';
+                    statusIndicator.className = 'status-indicator text-xs text-red-500 w-16 text-right';
                 }
-                if (element) {
-                    element.classList.add('text-red-500');
-                }
+                showNotification('Failed to save changes', 'error');
             }
         }
 
@@ -108,10 +228,8 @@
             const cellElement = document.getElementById(`cell-${rowIndex}-${cellIndex}`);
             if (!cellElement) return;
 
-            const statusIndicator = cellElement.querySelector('.status-indicator');
-            if (statusIndicator) {
-                statusIndicator.textContent = 'Deleting...';
-            }
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.classList.remove('hidden');
 
             try {
                 const response = await axios.post('/delete-cell', {
@@ -120,63 +238,32 @@
                 });
 
                 if (response.data.success) {
-                    // Clear the cell content
                     const cellContent = cellElement.querySelector('.cell-content');
                     if (cellContent) {
                         cellContent.textContent = '';
-                    }
-
-                    // Update status indicator
-                    if (statusIndicator) {
-                        statusIndicator.textContent = 'Deleted';
-                        statusIndicator.classList.remove('text-red-500');
-                        statusIndicator.classList.add('text-green-500');
-
+                        cellContent.classList.add('bg-red-50');
                         setTimeout(() => {
-                            if (statusIndicator) {
-                                statusIndicator.textContent = '';
-                            }
-                        }, 2000);
+                            cellContent.classList.remove('bg-red-50');
+                        }, 300);
                     }
-                } else {
-                    throw new Error(response.data.message || 'Failed to delete');
+                    showNotification('Content deleted successfully');
                 }
             } catch (error) {
                 console.error('Error deleting cell:', error);
-                if (statusIndicator) {
-                    statusIndicator.textContent = 'Error deleting!';
-                    statusIndicator.classList.remove('text-green-500');
-                    statusIndicator.classList.add('text-red-500');
-                }
+                showNotification('Failed to delete content', 'error');
+            } finally {
+                loadingIndicator.classList.add('hidden');
             }
         }
 
         async function addNewRow() {
-            try {
-                const loadingIndicator = document.getElementById('loadingIndicator');
-                loadingIndicator.classList.remove('hidden');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.classList.remove('hidden');
 
+            try {
                 const response = await axios.post('/add-row');
                 if (response.data.success) {
-                    const tbody = document.querySelector('tbody');
-                    const newRow = document.createElement('tr');
-                    newRow.className = 'border-b hover:bg-gray-50';
-                    
-                    // Add cells for each column
-                    for (let i = 0; i < response.data.columnCount; i++) {
-                        const td = document.createElement('td');
-                        td.className = 'py-3 px-4';
-                        td.id = `cell-${response.data.newRowIndex}-${i}`;
-                        newRow.appendChild(td);
-                        
-                        // Initialize editor for the new cell
-                        initializeEditor(td, response.data.newRowIndex, i, '');
-                    }
-                    
-                    tbody.appendChild(newRow);
-                    
-                    // Show success message
-                    showNotification('Row added successfully', 'success');
+                    location.reload();
                 }
             } catch (error) {
                 console.error('Error adding new row:', error);
@@ -190,33 +277,13 @@
             const columnName = prompt('Enter column name:', 'New Column');
             if (!columnName) return;
 
-            try {
-                const loadingIndicator = document.getElementById('loadingIndicator');
-                loadingIndicator.classList.remove('hidden');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.classList.remove('hidden');
 
+            try {
                 const response = await axios.post('/add-column', { columnName });
                 if (response.data.success) {
-                    // Add header
-                    const headerRow = document.querySelector('thead tr');
-                    const newHeader = document.createElement('th');
-                    newHeader.className = 'py-3 px-4 text-left';
-                    newHeader.textContent = columnName;
-                    headerRow.appendChild(newHeader);
-                    
-                    // Add cells to each row
-                    const rows = document.querySelectorAll('tbody tr');
-                    rows.forEach((row, rowIndex) => {
-                        const td = document.createElement('td');
-                        td.className = 'py-3 px-4';
-                        td.id = `cell-${rowIndex}-${response.data.newColumnIndex}`;
-                        row.appendChild(td);
-                        
-                        // Initialize editor for the new cell
-                        initializeEditor(td, rowIndex, response.data.newColumnIndex, '');
-                    });
-                    
-                    // Show success message
-                    showNotification('Column added successfully', 'success');
+                    location.reload();
                 }
             } catch (error) {
                 console.error('Error adding new column:', error);
@@ -226,91 +293,18 @@
             }
         }
 
-        function showNotification(message, type = 'success') {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white ${
-                type === 'success' ? 'bg-green-600' : 'bg-red-600'
-            }`;
-            notification.classList.remove('hidden');
-            
-            setTimeout(() => {
-                notification.classList.add('hidden');
-            }, 3000);
-        }
-
         // Initialize all cells when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            const cells = document.querySelectorAll('[id^="cell-"]');
+            const cells = document.querySelectorAll('.cell-content');
             cells.forEach(cell => {
-                const [_, rowIndex, cellIndex] = cell.id.split('-').map(Number);
-                if (!isNaN(rowIndex) && !isNaN(cellIndex)) {
-                    initializeEditor(cell, rowIndex, cellIndex, cell.textContent.trim());
-                }
+                cell.addEventListener('focus', function() {
+                    this.classList.add('bg-white', 'ring-2', 'ring-red-200');
+                });
+                cell.addEventListener('blur', function() {
+                    this.classList.remove('bg-white', 'ring-2', 'ring-red-200');
+                });
             });
         });
     </script>
-</head>
-<body class="bg-gray-100 min-h-screen">
-@include('admin/navbar-admin')
-    <!-- Loading Indicator -->
-    <div id="loadingIndicator" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-        <div class="bg-white p-4 rounded-lg shadow-lg">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
-        </div>
-    </div>
-
-    <!-- Notification -->
-    <div id="notification" class="hidden"></div>
-
-    <div class="container mx-auto py-8">
-        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-700">Excel Data Editor</h2>
-                    <div class="space-x-4">
-                        <button onclick="addNewRow()" 
-                                class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
-                            Add Row
-                        </button>
-                        <button onclick="addNewColumn()" 
-                                class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-                            Add Column
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="overflow-x-auto">
-                    <table class="w-full border-collapse">
-                        <thead class="bg-white text-white">
-                            <tr>
-                                @foreach ($headers as $header)
-                                    <th class="py-3 px-4 text-left">{{ $header }}</th>
-                                @endforeach
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($excelData as $rowIndex => $row)
-                                <tr class="border-b hover:bg-gray-50">
-                                    @foreach ($row as $cellIndex => $cell)
-                                        <td class="py-3 px-4" id="cell-{{ $rowIndex }}-{{ $cellIndex }}">
-                                            {{ $cell }}
-                                        </td>
-                                    @endforeach
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <div class="p-6 bg-gray-50 border-t">
-                <a href="{{ route('dashboard') }}" 
-                   class="block w-full text-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
-                    Kembali ke Dashboard
-                </a>
-            </div>
-        </div>
-    </div>
 </body>
 </html>
