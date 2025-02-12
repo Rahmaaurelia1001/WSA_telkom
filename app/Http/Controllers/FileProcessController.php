@@ -18,7 +18,7 @@ class FileProcessController extends Controller
         return view('upload-form');
     }
 
-    public function process(Request $request)
+     public function process(Request $request)
     {
         $request->validate([
             'all_ticket' => 'required|file|max:10240',
@@ -79,12 +79,8 @@ class FileProcessController extends Controller
             ]);
 
             $data = $request->input('data');
-
-            if (empty($data)) {
-                return response()->json(['error' => 'Data kosong!'], 400);
-            }
-
-            // Generate filename and current date/time
+            
+            // Generate filename
             $now = Carbon::now('Asia/Jakarta');
             $filename = sprintf(
                 'Report TTR WSA - %s - %s.00 Wib.xlsx',
@@ -92,161 +88,91 @@ class FileProcessController extends Controller
                 $now->format('H')
             );
 
-            // Format current date and time for position text
-            $currentDate = $now->format('d/m/Y');
-            $currentHour = $now->format('H') . '.00';
-
-            // Format for Update text (with Indonesian month names)
-            $months = [
-                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
-            ];
-            
-            $updateDate = sprintf(
-                "%02d %s %d",
-                $now->day,
-                $months[$now->month],
-                $now->year
-            );
-            $updateTime = $now->format('H') . ':00';
-
-            // Load template with formatting
+            // Check if template exists
             $templateFile = 'Report TTR WSA - 06012025 - 08.00 Wib (3).xlsx';
             $filePath = storage_path('app/' . $templateFile);
             
-            // Load template with all formatting and formulas
-            $reader = IOFactory::createReaderForFile($filePath);
-            $reader->setReadDataOnly(false);
-            $spreadsheet = $reader->load($filePath);
-            
-            // Select sheet 1 for data
-            $sheet = $spreadsheet->setActiveSheetIndex(0);
+            try {
+                // Try to load template if exists
+                if (file_exists($filePath)) {
+                    $reader = IOFactory::createReaderForFile($filePath);
+                    $reader->setReadDataOnly(false);
+                    $reader->setReadEmptyCells(false);
+                    $spreadsheet = $reader->load($filePath);
+                } else {
+                    // Create new spreadsheet if template doesn't exist
+                    $spreadsheet = new Spreadsheet();
+                }
+            } catch (\Exception $e) {
+                // Create new spreadsheet if loading fails
+                Log::warning('Failed to load template, creating new spreadsheet: ' . $e->getMessage());
+                $spreadsheet = new Spreadsheet();
+            }
 
-            // Get the last row with data
-            $highestRow = $sheet->getHighestDataRow();
-            $highestColumn = $sheet->getHighestDataColumn();
+            // Ensure at least one sheet exists
+            if ($spreadsheet->getSheetCount() === 0) {
+                $spreadsheet->createSheet();
+            }
+            
+            // Set first sheet as active
+            $spreadsheet->setActiveSheetIndex(0);
+            $sheet = $spreadsheet->getActiveSheet();
+            
+            // Set sheet title if it's a new sheet
+            if ($sheet->getTitle() === 'Worksheet') {
+                $sheet->setTitle('Sheet1');
+            }
 
             // Clear existing content while preserving formatting
-            for ($row = 2; $row <= $highestRow; $row++) {
-                for ($col = 'A'; $col <= $highestColumn; $col++) {
-                    $cell = $sheet->getCell($col . $row);
-                    if (!$cell->isFormula()) {
-                        $cell->setValue(null);
-                    }
-                }
-            }
-
-            // Process new data in chunks
-            $chunkSize = 500;
-            $startRow = 2;
-            
-            foreach (array_chunk($data, $chunkSize) as $chunk) {
-                foreach ($chunk as $rowIndex => $rowData) {
-                    $currentRow = $startRow + $rowIndex;
-                    $rowArray = array_values((array)$rowData);
-                    
-                    foreach ($rowArray as $columnIndex => $value) {
-                        $column = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnIndex + 1);
-                        $cellCoordinate = $column . $currentRow;
-                        
-                        $cell = $sheet->getCell($cellCoordinate);
+            $highestRow = $sheet->getHighestRow();
+            $highestColumn = $sheet->getHighestColumn();
+            if ($highestRow > 1) {
+                for ($row = 2; $row <= $highestRow; $row++) {
+                    for ($col = 'A'; $col <= $highestColumn; $col++) {
+                        $cell = $sheet->getCell($col . $row);
                         if (!$cell->isFormula()) {
-                            $cell->setValue($value);
-                        }
-                    }
-                }
-                
-                $startRow += count($chunk);
-                unset($chunk);
-                gc_collect_cycles();
-            }
-
-            // Try to update texts in all sheets
-            $sheetCount = $spreadsheet->getSheetCount();
-
-            for ($sheetIndex = 0; $sheetIndex < $sheetCount; $sheetIndex++) {
-                $currentSheet = $spreadsheet->setActiveSheetIndex($sheetIndex);
-                $sheetName = $currentSheet->getTitle();
-                Log::info("Processing sheet: " . $sheetName);
-                
-                $highestRow = $currentSheet->getHighestRow();
-
-                for ($row = 1; $row <= $highestRow; $row++) {
-                    $cellValue = $currentSheet->getCell('A' . $row)->getValue();
-                    
-                    if ($cellValue) {
-                        // Update "posisi" text
-                        if (strpos(strtolower($cellValue), 'posisi') !== false) {
-                            $pattern = '/posisi\s+\d{2}\/\d{2}\/\d{4}\s+pukul\s+\d{2}\.\d{2}\s*WIB/i';
-                            $replacement = "posisi {$currentDate} pukul {$currentHour} WIB";
-                            
-                            $newValue = preg_replace($pattern, $replacement, $cellValue);
-                            if ($newValue !== $cellValue) {
-                                $currentSheet->setCellValue('A' . $row, $newValue);
-                            } else {
-                                $currentSheet->setCellValue('A' . $row, $replacement);
-                            }
-                        }
-                        
-                        // Update "Update:" text
-                        if (stripos($cellValue, 'Update:') !== false) {
-                            Log::info("Found Update text in sheet {$sheetName}, row {$row}: {$cellValue}");
-                            
-                            // More specific pattern for Update text
-                            $updatePattern = '/Update:\s*\d{2}\s+[A-Za-z]+\s+\d{4}\s+Pkl\s+\d{2}:\d{2}/i';
-                            $updateReplacement = "Update: {$updateDate} Pkl {$updateTime}";
-                            
-                            $newValue = preg_replace($updatePattern, $updateReplacement, $cellValue);
-                            
-                            if ($newValue !== $cellValue) {
-                                Log::info("Updating cell value from: {$cellValue}");
-                                Log::info("Updating cell value to: {$newValue}");
-                                $currentSheet->setCellValue('A' . $row, $newValue);
-                            } else {
-                                Log::info("Pattern match failed, using direct replacement");
-                                Log::info("Original value: {$cellValue}");
-                                Log::info("New value: {$updateReplacement}");
-                                $currentSheet->setCellValue('A' . $row, $updateReplacement);
-                            }
+                            $cell->setValue(null);
                         }
                     }
                 }
             }
 
-            // Return to first sheet
-            $spreadsheet->setActiveSheetIndex(0);
+            // Write data in chunks
+            $chunkSize = 1000;
+            foreach (array_chunk($data, $chunkSize) as $index => $chunk) {
+                $startRow = ($index * $chunkSize) + 2;
+                $sheet->fromArray($chunk, null, 'A' . $startRow, true);
+            }
 
-            // Use memory-efficient writer
+            // Update date/time texts
+            $this->updateDateTimeTexts($spreadsheet, $now);
+
+            // Use temp file
+            $tempFile = tempnam(sys_get_temp_dir(), 'excel_');
+            
+            // Configure writer
             $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
             $writer->setPreCalculateFormulas(false);
             $writer->setOffice2003Compatibility(false);
+            $writer->save($tempFile);
 
-            // Stream response with proper headers
-            $response = response()->stream(
-                function () use ($writer) {
-                    $writer->save('php://output');
-                },
-                200,
-                [
-                    'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-                    'Cache-Control' => 'max-age=0',
-                    'Pragma' => 'public'
-                ]
-            );
+            // Save download info asynchronously
+            dispatch(function () use ($filename, $data) {
+                ExcelDownload::create([
+                    'filename' => $filename,
+                    'merged_data' => json_encode($data),
+                    'processed_data' => json_encode($data),
+                    'downloaded_by' => Auth::check() ? Auth::user()->name : 'Guest',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            })->afterResponse();
 
-            // Simpan informasi pengunduhan ke database
-            ExcelDownload::create([
-                'filename' => $filename,
-                'merged_data' => json_encode($data), // Simpan data yang digabungkan
-                'processed_data' => json_encode($data), // Simpan data yang diproses
-                'downloaded_by' => Auth::check() ? Auth::user()->name : 'Guest', // Siapa yang mengunduh
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            return $response;
+            return response()->download($tempFile, $filename, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Cache-Control' => 'max-age=0',
+                'Pragma' => 'public'
+            ])->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
             Log::error('Gagal menyimpan Excel:', [
@@ -256,6 +182,37 @@ class FileProcessController extends Controller
             return response()->json([
                 'error' => 'Terjadi kesalahan saat menyimpan file: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    private function updateDateTimeTexts(Spreadsheet $spreadsheet, Carbon $now)
+    {
+        $currentDate = $now->format('d/m/Y');
+        $currentHour = $now->format('H') . '.00';
+        $updateDate = $now->format('d') . ' ' . 
+            ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 
+             'Agustus', 'September', 'Oktober', 'November', 'Desember'][$now->month - 1] . 
+            ' ' . $now->year;
+        $updateTime = $now->format('H') . ':00';
+
+        foreach ($spreadsheet->getAllSheets() as $sheet) {
+            // Only process if sheet has content
+            if ($sheet->getHighestRow() > 0) {
+                $rows = $sheet->getRowIterator(1, $sheet->getHighestRow());
+                foreach ($rows as $row) {
+                    $cellValue = $sheet->getCell('A' . $row->getRowIndex())->getValue();
+                    if (!$cellValue) continue;
+
+                    if (stripos($cellValue, 'posisi') !== false) {
+                        $sheet->setCellValue('A' . $row->getRowIndex(), 
+                            "posisi {$currentDate} pukul {$currentHour} WIB");
+                    }
+                    elseif (stripos($cellValue, 'Update:') !== false) {
+                        $sheet->setCellValue('A' . $row->getRowIndex(), 
+                            "Update: {$updateDate} Pkl {$updateTime}");
+                    }
+                }
+            }
         }
     }
 

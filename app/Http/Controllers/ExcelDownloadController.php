@@ -10,6 +10,9 @@ class ExcelDownloadController extends Controller
 {
     public function index()
     {
+
+        // ini_set('memory_limit', '1024M');
+
         try {
             Log::info('Mengambil data dari tabel excel_downloads.');
 
