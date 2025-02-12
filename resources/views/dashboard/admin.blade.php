@@ -18,7 +18,7 @@
 
     <div class="flex flex-col items-center justify-center min-h-screen space-y-6">
         <!-- Welcome Message -->
-        <div class="flex flex-col md:flex-row items-center gap-3 text-center md:text-left mt-10">
+        <div class="flex flex-col md:flex-row items-center gap-3 text-center md:text-left mt-32">
             <h1 class="text-3xl font-bold text-gray-800">
                 Welcome to <br>
                 <span class="text-red-600 text-4xl">Admin Dashboard</span>
@@ -52,7 +52,7 @@
 
         <!-- Tabel Hasil Excel Download -->
         <div class="container mx-auto mt-10 px-4">
-            <h2 class="text-2xl font-bold mb-4">Daftar File Excel yang Diunduh</h2>
+            <h2 class="text-2xl font-bold mb-4 mt-10">Daftar File Excel yang Diunduh</h2>
 
             @if(session('error'))
                 <div class="bg-red-500 text-white p-4 rounded mb-4">
@@ -105,13 +105,12 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <!-- Total Downloads Today with Date -->
                 <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-                    <div class="flex justify-between items-start mb-4">
+                    <div class="w-full flex justify-between items-start mb-4">
                         <h3 class="text-xl font-semibold text-gray-800">Total Rekap Hari Ini</h3>
                         <span id="currentDate" class="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded"></span>
                     </div>
-                    <p class="text-3xl font-bold text-red-600" id="totalDownloadsToday">0</p>
+                    <p class="text-[250px] font-bold text-red-600 flex flex-col items-center justify-center text-center" id="totalDownloadsToday">0</p>
                 </div>
-
                 <!-- Downloads Per User with Date Range -->
                 <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
                     <div class="flex justify-between items-start mb-4">
