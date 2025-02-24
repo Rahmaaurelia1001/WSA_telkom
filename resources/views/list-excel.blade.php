@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Daftar File Excel</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -16,6 +15,35 @@
         <div class="bg-white rounded-lg shadow-lg p-6">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">Daftar File Excel</h1>
+                
+                <!-- Search and Filter Form -->
+                <form action="{{ route('excel.index') }}" method="GET" class="flex gap-4">
+                    <div class="flex items-center gap-2">
+                        <input 
+                            type="text" 
+                            name="search" 
+                            value="{{ request('search') }}" 
+                            placeholder="Cari file..."
+                            class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                        
+                        <select name="date_filter" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Filter Tanggal</option>
+                            <option value="today" {{ request('date_filter') == 'today' ? 'selected' : '' }}>Hari Ini</option>
+                            <option value="week" {{ request('date_filter') == 'week' ? 'selected' : '' }}>Minggu Ini</option>
+                            <option value="month" {{ request('date_filter') == 'month' ? 'selected' : '' }}>Bulan Ini</option>
+                        </select>
+
+                        <select name="sort" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="desc" {{ request('sort') == 'desc' ? 'selected' : '' }}>Terbaru</option>
+                            <option value="asc" {{ request('sort') == 'asc' ? 'selected' : '' }}>Terlama</option>
+                        </select>
+
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                            Terapkan
+                        </button>
+                    </div>
+                </form>
             </div>
 
             @if(session('success'))
@@ -37,9 +65,11 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama File</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dibuat Oleh</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
-                            <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Merged Data</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processed Data</th> -->
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <div class="flex items-center">
+                                    Tanggal
+                                </div>
+                            </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                         </tr>
                     </thead>
@@ -58,20 +88,6 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {{ $file->downloaded_at->format('d/m/Y H:i') }}
                                 </td>
-                                <!-- <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    @if($file->merged_data)
-                                        <pre>{{ json_encode($file->merged_data, JSON_PRETTY_PRINT) }}</pre>
-                                    @else
-                                        <span>Tidak ada data</span>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    @if($file->processed_data)
-                                        <pre>{{ base64_decode($file->processed_data) }}</pre>
-                                    @else
-                                        <span>Tidak ada data</span>
-                                    @endif
-                                </td> -->
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <a href="{{ route('excel.download', $file->id) }}" 
                                        class="text-blue-600 hover:text-blue-900 mr-3">Download</a>
@@ -92,13 +108,13 @@
 
             <!-- Pagination -->
             <div class="mt-4">
-                {{ $excelFiles->links() }}
+                {{ $excelFiles->appends(request()->query())->links() }}
             </div>
         </div>
     </div>
 
     <script>
-        function deleteFile(id) {
+    function deleteFile(id) {
         if (confirm('Apakah Anda yakin ingin menghapus file ini?')) {
             fetch(`/excel/${id}`, {
                 method: 'DELETE',
@@ -110,7 +126,6 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Reload halaman atau hapus baris dari tabel
                     window.location.reload();
                 } else {
                     alert('Gagal menghapus file: ' + data.error);
@@ -121,6 +136,6 @@
             });
         }
     }
-        </script>
+    </script>
 </body>
-</html> 
+</html>

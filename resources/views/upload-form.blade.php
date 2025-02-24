@@ -143,14 +143,17 @@
                 const formattedTime = `${hours}:00`;
                 const message = `*Report TTR WSA - ${formattedDate.replace(/\//g, '')} - ${formattedTime} WIB*\n\nReport has been generated on ${formattedDate} at ${formattedTime} WIB.\n\nPlease check the Excel file for complete details.`;
 
-                if (platform === 'whatsapp') {
-                    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
-                    window.open(whatsappUrl, '_blank');
-                } else if (platform === 'telegram') {
-                    const telegramUrl = `https://t.me/share/url?url=https://example.com&text=${encodeURIComponent(message)}`;
-                    window.open(telegramUrl, '_blank');
-                }
+                // Cek apakah user di mobile atau desktop
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
+if (platform === 'whatsapp') {
+    const whatsappUrl = `https://web.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+} else if (platform === 'telegram') {
+    
+    const telegramUrl = `https://web.telegram.org/a/#share/${encodeURIComponent(message)}`;
+    window.open(telegramUrl, '_blank');
+}
                 const mergedData = @json(session('merged_data', []));
                 const response = await fetch('/api/save-excel', {
                     method: 'POST',

@@ -2,30 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ExcelDownload;  // Pastikan model yang benar di-import
+use App\Models\ExcelDownload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-class ExcelDownloadController extends Controller
+class ExcelDownloadController extends Controller 
 {
-    public function index()
+    public function index(Request $request)
     {
-
-        // ini_set('memory_limit', '1024M');
-
         try {
             Log::info('Mengambil data dari tabel excel_downloads.');
-
-            // Ambil semua data dari tabel excel_downloads
-            $excelFiles = ExcelDownload::paginate(10);  // Anda bisa menyesuaikan pagination sesuai kebutuhan
-
-            // Log jumlah data yang ditemukan
-            Log::info('Ditemukan ' . $excelFiles->count() . ' record.');
-
-            if ($excelFiles->isEmpty()) {
-                Log::info('Tidak ada data di tabel excel_downloads.');
-            }
-
+            
+            // Add proper ordering and pagination with query string preservation
+            $excelFiles = ExcelDownload::orderBy('created_at', 'desc')
+                                      ->paginate(10)
+                                      ->withQueryString();
+            
+            Log::info('Ditemukan ' . $excelFiles->total() . ' total records.');
+            
             return view('excel.index', compact('excelFiles'));
         } catch (\Exception $e) {
             Log::error('Terjadi kesalahan saat mengambil data: ' . $e->getMessage());

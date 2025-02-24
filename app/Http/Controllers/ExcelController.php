@@ -126,16 +126,55 @@ class ExcelController extends Controller
         }
     }
 
-    public function index()
-    {
-        // Ambil daftar file Excel dengan pagination
-        $excelFiles = ExcelDownload::orderBy('created_at', 'desc')
-            ->paginate(10); // 10 item per halaman
+    public function index(Request $request)
+{
+    $query = ExcelDownload::query();
 
-        return view('list-excel', [
-            'excelFiles' => $excelFiles
-        ]);
+    // Search functionality
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function($q) use ($search) {
+            $q->where('filename', 'like', "%{$search}%")
+              ->orWhere('downloaded_by', 'like', "%{$search}%");
+        });
     }
+
+    // Date filtering
+    if ($request->filled('date_filter')) {
+        switch ($request->date_filter) {
+            case 'today':
+                $query->whereDate('created_at', Carbon::today());
+                break;
+            case 'week':
+                $query->whereBetween('created_at', [
+                    Carbon::now()->startOfWeek(),
+                    Carbon::now()->endOfWeek()
+                ]);
+                break;
+            case 'month':
+                $query->whereMonth('created_at', Carbon::now()->month)
+                      ->whereYear('created_at', Carbon::now()->year);
+                break;
+        }
+    }
+
+    // Sorting
+    $sort = $request->get('sort', 'desc');
+    $query->orderBy('created_at', $sort);
+
+    // Debug query
+    \Log::info('Generated SQL: ' . $query->toSql());
+    \Log::info('SQL Bindings: ' . json_encode($query->getBindings()));
+
+    $excelFiles = $query->paginate(10);
+    
+    // Append query parameters to pagination links
+    $excelFiles->appends($request->all());
+
+    return view('list-excel', [
+        'excelFiles' => $excelFiles
+    ]);
+}
 
     public function download($id)
     {

@@ -53,6 +53,8 @@ Route::middleware(['auth'])->group(function () {
 
     // Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+        Route::get('/download/{file}', [AdminController::class, 'downloadFile'])->name('download.file');
+
         // Route::post('/download-excel', [ExcelController::class, 'downloadExcel']);
         
         // routes/web.php

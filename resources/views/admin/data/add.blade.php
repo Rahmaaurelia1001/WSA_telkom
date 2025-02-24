@@ -7,7 +7,6 @@
     <title>Excel Data Editor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <!-- Add FontAwesome for better icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -34,9 +33,49 @@
         .cell-wrapper:hover .delete-button {
             opacity: 1;
         }
-        
-        .saving-indicator {
-            transition: all 0.3s ease-in-out;
+
+        /* Excel-like grid styling */
+        .excel-table {
+            border: 1px solid #e5e7eb;
+            border-collapse: collapse;
+        }
+
+        .excel-table th {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            font-weight: 600;
+            padding: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .excel-table td {
+            border: 1px solid #e5e7eb;
+            padding: 0;
+        }
+
+        .cell-content {
+            min-height: 2rem;
+            padding: 8px 12px;
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .cell-wrapper {
+            display: flex;
+            align-items: center;
+            min-height: 2.5rem;
+            padding: 0 4px;
+        }
+
+        .excel-table tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        .excel-table tr:hover {
+            background-color: #f3f4f6;
         }
     </style>
 </head>
@@ -51,11 +90,11 @@
         </div>
     </div>
 
-    <!-- Notification Toast -->
+    <!-- Success Notification Toast -->
     <div id="notification" class="hidden fixed top-4 right-4 max-w-md transform transition-all duration-300 z-50">
-        <div class="flex items-center p-4 rounded-lg shadow-lg">
+        <div class="flex items-center p-4 bg-green-50 border border-green-200 rounded-lg shadow-lg">
             <div class="flex-shrink-0 mr-3">
-                <i class="fas fa-check-circle text-xl notification-icon"></i>
+                <i class="fas fa-check-circle text-xl text-green-500"></i>
             </div>
             <div class="flex-1 notification-message"></div>
         </div>
@@ -85,23 +124,23 @@
             <!-- Table Section -->
             <div class="p-6">
                 <div class="overflow-x-auto">
-                    <table class="w-full border-collapse">
-                        <thead class="bg-gray-50">
+                    <table class="w-full excel-table">
+                        <thead>
                             <tr>
                                 @foreach ($headers as $header)
-                                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-900 border-b">
+                                    <th class="text-left text-sm">
                                         {{ $header }}
                                     </th>
                                 @endforeach
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
+                        <tbody>
                             @foreach ($excelData as $rowIndex => $row)
-                                <tr class="hover:bg-gray-50 transition-colors">
+                                <tr>
                                     @foreach ($row as $cellIndex => $cell)
-                                        <td class="py-4 px-6" id="cell-{{ $rowIndex }}-{{ $cellIndex }}">
-                                            <div class="cell-wrapper flex items-center gap-3 min-h-[2rem]">
-                                                <div class="cell-content outline-none flex-1 px-2 py-1 rounded hover:bg-gray-100 focus:bg-white focus:ring-2 focus:ring-red-200 transition-all"
+                                        <td id="cell-{{ $rowIndex }}-{{ $cellIndex }}">
+                                            <div class="cell-wrapper">
+                                                <div class="cell-content outline-none flex-1 rounded hover:bg-gray-100 focus:bg-white focus:ring-2 focus:ring-red-200 transition-all"
                                                      contenteditable="true"
                                                      onblur="handleUpdate(this, {{ $rowIndex }}, {{ $cellIndex }})"
                                                      oninput="handleInput(this, {{ $rowIndex }}, {{ $cellIndex }})">
@@ -111,7 +150,6 @@
                                                         class="delete-button p-1.5 hover:bg-red-50 rounded-lg group transition-all">
                                                     <i class="fas fa-trash-alt text-red-500 group-hover:text-red-600 text-sm"></i>
                                                 </button>
-                                                <span class="status-indicator text-xs text-gray-400 w-16 text-right"></span>
                                             </div>
                                         </td>
                                     @endforeach
@@ -139,19 +177,9 @@
         
         let debounceTimers = {};
         
-        function showNotification(message, type = 'success') {
+        function showNotification(message) {
             const notification = document.getElementById('notification');
-            const notificationIcon = notification.querySelector('.notification-icon');
             const notificationMessage = notification.querySelector('.notification-message');
-            
-            // Set styles based on type
-            if (type === 'success') {
-                notification.firstElementChild.className = 'flex items-center p-4 bg-green-50 border border-green-200 rounded-lg shadow-lg';
-                notificationIcon.className = 'fas fa-check-circle text-xl text-green-500';
-            } else {
-                notification.firstElementChild.className = 'flex items-center p-4 bg-red-50 border border-red-200 rounded-lg shadow-lg';
-                notificationIcon.className = 'fas fa-exclamation-circle text-xl text-red-500';
-            }
             
             notificationMessage.textContent = message;
             notification.classList.remove('hidden');
@@ -169,12 +197,6 @@
 
         function handleInput(element, rowIndex, cellIndex) {
             if (!element) return;
-            
-            const statusIndicator = element.parentElement?.querySelector('.status-indicator');
-            if (statusIndicator) {
-                statusIndicator.textContent = 'Editing...';
-                statusIndicator.className = 'status-indicator text-xs text-blue-500 w-16 text-right';
-            }
 
             if (debounceTimers[`${rowIndex}-${cellIndex}`]) {
                 clearTimeout(debounceTimers[`${rowIndex}-${cellIndex}`]);
@@ -189,14 +211,8 @@
             if (!element) return;
 
             const newValue = element.textContent || '';
-            const statusIndicator = element.closest('.cell-wrapper')?.querySelector('.status-indicator');
             
             try {
-                if (statusIndicator) {
-                    statusIndicator.textContent = 'Saving...';
-                    statusIndicator.className = 'status-indicator text-xs text-yellow-500 w-16 text-right';
-                }
-                
                 const response = await axios.post('/update-cell', {
                     rowIndex: rowIndex,
                     cellIndex: cellIndex,
@@ -204,23 +220,10 @@
                 });
 
                 if (response.data.success) {
-                    if (statusIndicator) {
-                        statusIndicator.textContent = 'Saved';
-                        statusIndicator.className = 'status-indicator text-xs text-green-500 w-16 text-right';
-                        
-                        setTimeout(() => {
-                            statusIndicator.textContent = '';
-                        }, 2000);
-                    }
                     showNotification('Changes saved successfully');
                 }
             } catch (error) {
                 console.error('Error updating cell:', error);
-                if (statusIndicator) {
-                    statusIndicator.textContent = 'Error!';
-                    statusIndicator.className = 'status-indicator text-xs text-red-500 w-16 text-right';
-                }
-                showNotification('Failed to save changes', 'error');
             }
         }
 
@@ -250,7 +253,6 @@
                 }
             } catch (error) {
                 console.error('Error deleting cell:', error);
-                showNotification('Failed to delete content', 'error');
             } finally {
                 loadingIndicator.classList.add('hidden');
             }
@@ -267,7 +269,6 @@
                 }
             } catch (error) {
                 console.error('Error adding new row:', error);
-                showNotification('Failed to add new row', 'error');
             } finally {
                 loadingIndicator.classList.add('hidden');
             }
@@ -287,7 +288,6 @@
                 }
             } catch (error) {
                 console.error('Error adding new column:', error);
-                showNotification('Failed to add new column', 'error');
             } finally {
                 loadingIndicator.classList.add('hidden');
             }

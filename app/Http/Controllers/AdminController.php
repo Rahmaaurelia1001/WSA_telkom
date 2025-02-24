@@ -4,42 +4,42 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\ExcelDownload;  // Pastikan model yang benar di-import
+use App\Models\ExcelDownload;
 use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
-    public function dashboard()
+    public function dashboard(Request $request)
     {
-        // Increase memory limit for large datasets
         ini_set('memory_limit', '1024M');
-
+        
         try {
             Log::info('Mengambil data dari tabel excel_downloads.');
-
-            // Ambil semua data dari tabel excel_downloads
-            $excelFiles = ExcelDownload::all(); // Fetch all records
-
-            // Log jumlah data yang ditemukan
-            Log::info('Ditemukan ' . $excelFiles->count() . ' record.');
-
-            if ($excelFiles->isEmpty()) {
-                Log::info('Tidak ada data di tabel excel_downloads.');
-            }
-
-            // Return the view with the data
-            return view('dashboard.admin', compact('excelFiles'));
+            
+            // Get search parameter
+            $search = $request->get('search');
+            
+            // Query with optional search and pagination
+            $excelFiles = ExcelDownload::query()
+                ->when($search, function($query, $search) {
+                    return $query->where('filename', 'like', "%{$search}%")
+                        ->orWhere('uploaded_by', 'like', "%{$search}%");
+                })
+                ->orderBy('created_at', 'desc')
+                ->paginate(10)
+                ->withQueryString();
+            
+            Log::info('Ditemukan ' . $excelFiles->total() . ' record.');
+            
+            return view('dashboard.admin', compact('excelFiles', 'search'));
         } catch (\Exception $e) {
-            // Log the error message
             Log::error('Terjadi kesalahan saat mengambil data: ' . $e->getMessage());
-
-            // Redirect back with an error message
             return redirect()->back()->with('error', 'Terjadi kesalahan saat mengambil data.');
         }
     }
 
     public function navbarAdmin()
     {
-        return view('admin.navbar-admin'); // Pastikan nama view sudah benar
+        return view('admin.navbar-admin');
     }
 }
