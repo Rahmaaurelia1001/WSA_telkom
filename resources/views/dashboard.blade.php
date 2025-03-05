@@ -1,91 +1,83 @@
-<!-- resources/views/dashboard/admin.blade.php -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
+    <title>Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
-    @include('admin.navbar-admin')
 
-    <div class="container mx-auto px-4 py-8">
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-bold text-gray-800">Data Excel Downloads</h1>
-                
-                <!-- Search Form -->
-                <form action="{{ route('admin.dashboard') }}" method="GET" class="flex gap-2">
-                    <input 
-                        type="text" 
-                        name="search" 
-                        value="{{ $search ?? '' }}" 
-                        placeholder="Search files..."
-                        class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
-                        Search
-                    </button>
-                </form>
+    <!-- Header -->
+    <div class="bg-white shadow-md flex justify-between items-center px-6 py-3">
+        <img src="/images/logo-telkom.png" alt="Telkom Indonesia" class="h-10">
+        <div class="relative flex items-center space-x-2">
+            <div class="bg-gray-300 rounded-full p-2">
+                <img src="/images/user.png" alt="User" class="w-6 h-6 text-gray-600">
             </div>
+            <span class="text-gray-600 font-medium">{{ auth()->user()->name }}</span>
 
-            @if(session('error'))
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                    <span class="block sm:inline">{{ session('error') }}</span>
+            <!-- Dropdown untuk Histori dan Logout -->
+            <div class="relative">
+                <button class="bg-gray-200 text-gray-600 p-2 rounded-full hover:bg-gray-300 focus:outline-none" id="dropdownMenuButton">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+
+                <!-- Dropdown Menu -->
+                <div class="dropdown-menu absolute right-0 mt-2 w-48 bg-white shadow-md rounded-lg p-2 hidden" id="dropdownMenu">
+                    <a href="{{ route('profile') }}" class="block px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-md">
+                        Lihat Profil
+                    </a>
+                    <a href="{{ route('history') }}" class="block px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-md">
+                        Lihat Histori
+                    </a>
+                    <form action="{{ route('logout') }}" method="POST" class="block">
+                        @csrf
+                        <button type="submit" class="w-full text-left px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-md">
+                            Logout
+                        </button>
+                    </form>
                 </div>
-            @endif
-
-            <!-- Data Table -->
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white border border-gray-300">
-                    <thead>
-                        <tr>
-                            <th class="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">No</th>
-                            <th class="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Filename</th>
-                            <th class="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Uploaded By</th>
-                            <th class="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Upload Date</th>
-                            <th class="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-300">
-                        @forelse($excelFiles as $index => $file)
-                            <tr>
-                                <td class="px-6 py-4 whitespace-no-wrap text-sm leading-5 text-gray-500">
-                                    {{ $excelFiles->firstItem() + $index }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-no-wrap text-sm leading-5 text-gray-800">
-                                    {{ $file->filename }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-no-wrap text-sm leading-5 text-gray-800">
-                                    {{ $file->uploaded_by }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-no-wrap text-sm leading-5 text-gray-800">
-                                    {{ $file->created_at->format('d M Y H:i') }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-no-wrap text-sm leading-5 text-gray-800">
-                                    <a href="{{ route('download.file', $file->id) }}" 
-                                       class="text-blue-600 hover:text-blue-800">
-                                        Download
-                                    </a>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="px-6 py-4 text-center text-gray-500">
-                                    No records found
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination -->
-            <div class="mt-4">
-                {{ $excelFiles->links() }}
             </div>
         </div>
     </div>
+
+    <!-- Main Content -->
+    <div class="flex flex-col items-center justify-center h-screen space-y-4">
+        <div class="flex items-center space-x-10" style="margin-top: -100px;">
+            <h1 class="text-3xl font-bold mt-6 mb-6">
+                Welcome to <br>
+                <span class="text-red-600 text-4xl">Dashboard Page</span>
+            </h1>
+            <img src="/images/logo-telkom.png" alt="Telkom Indonesia" style="width: 200px; margin-top: -45px;">
+        </div>
+
+        <!-- WSA Icon -->
+        <a href="{{ route('upload.form') }}">
+            <div class="border-4 border-red-600 rounded-lg p-4 flex items-center justify-center bg-white shadow-md">
+                <img src="/images/assurance.png" alt="WSA" class="h-20">
+            </div>
+        </a>
+    </div>
+
+    <script>
+        // Toggle dropdown visibility
+        const dropdownButton = document.getElementById('dropdownMenuButton');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+
+        dropdownButton.addEventListener('click', () => {
+            dropdownMenu.classList.toggle('hidden');
+        });
+
+        // Optional: Close the dropdown if clicked outside
+        window.addEventListener('click', (event) => {
+            if (!dropdownButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
+    </script>
+
 </body>
 </html>
